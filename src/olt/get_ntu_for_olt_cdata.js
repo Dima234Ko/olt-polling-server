@@ -3,7 +3,7 @@ const snmp = require('net-snmp');
 function getOntListCdata(ipAddress) {
     return new Promise((resolve) => {
         const ontList = [];
-        // Временные OID (замените на реальные для C-Data FD1608S-B1 после выполнения snmpwalk или получения MIB)
+        // OID
         const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3';
         const runStateOid = '1.3.6.1.4.1.17409.2.8.4.1.1.7';
 
@@ -48,8 +48,6 @@ function getOntListCdata(ipAddress) {
                     // Обработка Run state
                     if (vb.oid.startsWith(runStateOid)) {
                         runState = vb.value;
-                        // Отладочный вывод для проверки значений Run state
-                        console.log(`ONT ${serialNumber}: Run state = ${runState}`);
                     }
                 }
 
@@ -65,6 +63,7 @@ function getOntListCdata(ipAddress) {
                     };
                     const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
                     ontList.push({
+                        index: ontList.length + 1,
                         serial: serialNumber,
                         runState: runStateStr
                     });
@@ -75,9 +74,13 @@ function getOntListCdata(ipAddress) {
                     walk(varbinds[0].oid, varbinds[1].oid);
                 } else {
                     session.close();
-                    resolve({
+                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    return resolve({
                         Success: true,
-                        Result: ontList
+                        Result: {
+                            totalCount: ontList.length,
+                            ontList: ontList
+                        }
                     });
                 }
             });

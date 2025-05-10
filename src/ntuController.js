@@ -7,13 +7,10 @@ const isValidIp = (ip) => {
     const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
     return ipRegex.test(ip);
 };
-
 const getNtu = async (req, res) => {
     try {
-        // Извлекаем IP-адрес или массив IP-адресов из тела запроса
         const { ip } = req.body;
 
-        // Проверяем, передан ли IP-адрес или массив
         if (!ip) {
             return res.status(400).json({
                 success: false,
@@ -21,10 +18,8 @@ const getNtu = async (req, res) => {
             });
         }
 
-        // Обрабатываем как массив IP-адресов
         const ipAddresses = Array.isArray(ip) ? ip : [ip];
 
-        // Валидация всех IP-адресов
         for (const ipAddr of ipAddresses) {
             if (!isValidIp(ipAddr)) {
                 return res.status(400).json({
@@ -34,14 +29,14 @@ const getNtu = async (req, res) => {
             }
         }
 
-        // Параллельный вызов для всех IP-адресов
         const results = await Promise.all(
             ipAddresses.map(async (ipAddr) => {
                 try {
-                    // Получаем модель устройства
-                    const model = await getLtpModel(ipAddr);
+                    console.log(`Обработка IP-адреса: ${ipAddr}`);
 
-                    // Проверяем успешность запроса модели
+                    const model = await getLtpModel(ipAddr);
+                    console.log(`Получена модель для IP-адреса ${ipAddr}: ${model.Result}`);
+
                     if (!model.Success) {
                         return {
                             ip: ipAddr,
@@ -50,15 +45,16 @@ const getNtu = async (req, res) => {
                         };
                     }
 
-                    // Проверяем модель устройства
                     if (model.Result === 'FD16') {
                         const result = await getOntListCdata(ipAddr);
+                        console.log(`Получены данные Cdata для IP-адреса ${ipAddr}:`);
                         return {
                             ip: ipAddr,
                             ...result,
                         };
                     } else if (model.Result === 'ELTE') {
                         const result = await getOntListEltex(ipAddr);
+                        console.log(`Получены данные Eltex для IP-адреса ${ipAddr}:`);
                         return {
                             ip: ipAddr,
                             ...result,
@@ -71,6 +67,7 @@ const getNtu = async (req, res) => {
                         };
                     }
                 } catch (error) {
+                    console.error(`Ошибка при обработке ${ipAddr}: ${error.message}`);
                     return {
                         ip: ipAddr,
                         Success: false,
@@ -80,21 +77,18 @@ const getNtu = async (req, res) => {
             })
         );
 
-        // Отправляем успешный ответ
         return res.status(200).json({
             success: true,
             data: results,
         });
     } catch (error) {
-        // Логирование ошибки
         console.error('Ошибка при получении данных NTU:', error);
-
-        // Отправляем ответ с ошибкой
         return res.status(500).json({
             success: false,
             error: `Ошибка сервера: ${error.message}`,
         });
     }
 };
+
 
 module.exports = { getNtu };

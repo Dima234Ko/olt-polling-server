@@ -2,8 +2,9 @@ const snmp = require('net-snmp');
 
 function getOntListEltex(ipAddress) {
     return new Promise((resolve) => {
-        const ntuList = [];
-        const serialOid = '1.3.6.1.4.1.35265.1.22.3.1.1.2';
+        const ontList = [];
+        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
+        const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20';  // OID для состояния устройства
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -11,58 +12,75 @@ function getOntListEltex(ipAddress) {
             port: 161
         });
 
-        // Функция для рекурсивного перебора NTU
-        function walk(currentOid) {
-            session.getNext([currentOid], (error, varbinds) => {
+        // Маппинг значений RunState
+        const runStateMap = {
+            1: 'Online',
+            2: 'Offline',
+            3: 'LOS',
+            0: 'Unknown'
+            // Добавьте другие значения на основе MIB C-Data
+        };
+
+        function walk(currentSerialOid, currentRunStateOid) {
+            session.getNext([currentSerialOid, currentRunStateOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    resolve({
+                    return resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
-                    return;
                 }
 
                 let continueWalk = false;
+                let serialNumber = null;
+                let runState = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        resolve({
+                        return resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
-                        return;
                     }
 
-                    // Проверяем, что OID всё ещё в нужном поддереве
                     if (vb.oid.startsWith(serialOid)) {
-                        const ntuSerial = vb.value.toString('hex');
-                        ntuList.push(ntuSerial);
+                        serialNumber = vb.value.toString('hex').substring(4);
                         continueWalk = true;
+                    }
+
+                    if (vb.oid.startsWith(runStateOid)) {
+                        runState = vb.value;
                     }
                 }
 
-                // Выводим текущий список NTU в консоль
-                console.log(`NTU list for ${ipAddress}:`, ntuList);
+                if (serialNumber && runState !== null) {
+                    const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
+                    ontList.push({
+                        index: ontList.length + 1,
+                        serial: serialNumber,
+                        runState: runStateStr
+                    });
+                }
 
-                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
-                    walk(varbinds[0].oid);
+                    walk(varbinds[0].oid, varbinds[1].oid);
                 } else {
                     session.close();
-                    resolve({
+                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    return resolve({
                         Success: true,
-                        Result: ntuList
+                        Result: {
+                            totalCount: ontList.length,
+                            ontList: ontList
+                        }
                     });
                 }
             });
         }
 
-        // Начинаем обход с базового OID
-        walk(serialOid);
+        walk(serialOid, runStateOid);
 
-        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
