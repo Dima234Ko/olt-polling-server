@@ -1,4 +1,5 @@
-const { getOntListCdata } = require('./olt/get_ntu_for_olt');
+const { getOntListCdata } = require('./olt/get_ntu_for_olt_cdata');
+const { getLtpModel } = require('./olt/get_model_olt');
 
 // Валидация IP-адреса
 const isValidIp = (ip) => {
@@ -8,32 +9,74 @@ const isValidIp = (ip) => {
 
 const getNtu = async (req, res) => {
     try {
-        // Извлекаем IP-адрес из тела запроса
-        const ipAddress = req.body.ip;
+        // Извлекаем IP-адрес или массив IP-адресов из тела запроса
+        const { ip } = req.body;
 
-        // Проверяем, передан ли IP-адрес
-        if (!ipAddress) {
+        // Проверяем, передан ли IP-адрес или массив
+        if (!ip) {
             return res.status(400).json({
                 success: false,
-                error: 'IP-адрес не указан в теле запроса',
+                error: 'IP-адрес или массив IP-адресов не указан в теле запроса',
             });
         }
 
-        // Валидация IP-адреса
-        if (!isValidIp(ipAddress)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Некорректный формат IP-адреса',
-            });
+        // Обрабатываем как массив IP-адресов
+        const ipAddresses = Array.isArray(ip) ? ip : [ip];
+
+        // Валидация всех IP-адресов
+        for (const ipAddr of ipAddresses) {
+            if (!isValidIp(ipAddr)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Некорректный формат IP-адреса: ${ipAddr}`,
+                });
+            }
         }
 
-        // Вызываем функцию getOntListCdata
-        const result = await getOntListCdata(ipAddress);
+        // Параллельный вызов для всех IP-адресов
+        const results = await Promise.all(
+            ipAddresses.map(async (ipAddr) => {
+                try {
+                    // Получаем модель устройства
+                    const model = await getLtpModel(ipAddr);
+
+                    // Проверяем успешность запроса модели
+                    if (!model.Success) {
+                        return {
+                            ip: ipAddr,
+                            Success: false,
+                            Result: model.Result,
+                        };
+                    }
+
+                    // Проверяем, является ли модель FD16
+                    if (model.Result === 'FD16') {
+                        const result = await getOntListCdata(ipAddr);
+                        return {
+                            ip: ipAddr,
+                            ...result,
+                        };
+                    } else {
+                        return {
+                            ip: ipAddr,
+                            Success: false,
+                            Result: `Устройство ${ipAddr} не является FD16 (модель: ${model.Result})`,
+                        };
+                    }
+                } catch (error) {
+                    return {
+                        ip: ipAddr,
+                        Success: false,
+                        Result: `Ошибка при обработке ${ipAddr}: ${error.message}`,
+                    };
+                }
+            })
+        );
 
         // Отправляем успешный ответ
         return res.status(200).json({
             success: true,
-            data: result,
+            data: results,
         });
     } catch (error) {
         // Логирование ошибки
