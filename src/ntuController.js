@@ -1,4 +1,5 @@
 const { getOntListCdata } = require('./olt/get_ntu_for_olt_cdata');
+const { getOntListEltex } = require('./olt/get_ont_list_eltex');
 const { getLtpModel } = require('./olt/get_model_olt');
 
 // Валидация IP-адреса
@@ -49,9 +50,15 @@ const getNtu = async (req, res) => {
                         };
                     }
 
-                    // Проверяем, является ли модель FD16
+                    // Проверяем модель устройства
                     if (model.Result === 'FD16') {
                         const result = await getOntListCdata(ipAddr);
+                        return {
+                            ip: ipAddr,
+                            ...result,
+                        };
+                    } else if (model.Result === 'ELTE') {
+                        const result = await getOntListEltex(ipAddr);
                         return {
                             ip: ipAddr,
                             ...result,
@@ -60,7 +67,7 @@ const getNtu = async (req, res) => {
                         return {
                             ip: ipAddr,
                             Success: false,
-                            Result: `Устройство ${ipAddr} не является FD16 (модель: ${model.Result})`,
+                            Result: `Устройство ${ipAddr} не поддерживается (модель: ${model.Result})`,
                         };
                     }
                 } catch (error) {
