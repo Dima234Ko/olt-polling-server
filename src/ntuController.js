@@ -6,11 +6,8 @@ const { getNtuList } = require('./olt/result');
 const { processUnsupportedModel } = require('./validate');
 const { validateInput } = require('./validate');
 
-
-// Основная функция обработки запроса
-const getNtu = async (req, res) => {
-
-    const processIpAddress = async (ipAddr) => {
+const getStatusNtu = async (req, res, work) => {
+    const processIpAddress = async (ipAddr, ponSerial) => {
         try {
             console.log(`Обработка IP-адреса: ${ipAddr}`);
             const model = await getLtpModel(ipAddr);
@@ -26,10 +23,18 @@ const getNtu = async (req, res) => {
 
             if (model.Result === 'FD16') {
                 const result = await getOntListCdata(ipAddr);
-                return await getNtuOnline(result, ipAddr);
+                if (work === 'ntuStatus') {
+                    return await getNtuOnline(result, ipAddr, ponSerial);
+                } else if (work === 'ntuStatusList') {
+                    return await getNtuList(result, ipAddr);
+                }
             } else if (model.Result === 'ELTE') {
                 const result = await getOntListEltex(ipAddr);
-                return await getNtuOnline(result, ipAddr);
+                if (work === 'ntuStatus') {
+                    return await getNtuOnline(result, ipAddr, ponSerial);
+                } else if (work === 'ntuStatusList') {
+                    return await getNtuList(result, ipAddr);
+                }
             } else {
                 return processUnsupportedModel(ipAddr, model.Result);
             }
@@ -44,7 +49,7 @@ const getNtu = async (req, res) => {
     };
 
     try {
-        const { ip } = req.body;
+        const { ip, ponSerial } = req.body;
         const validation = validateInput(ip);
 
         if (!validation.valid) {
@@ -55,7 +60,7 @@ const getNtu = async (req, res) => {
         }
 
         const results = await Promise.all(
-            validation.ipAddresses.map(processIpAddress)
+            validation.ipAddresses.map(ipAddr => processIpAddress(ipAddr, ponSerial))
         );
 
         return res.status(200).json({
@@ -71,4 +76,4 @@ const getNtu = async (req, res) => {
     }
 };
 
-module.exports = { getNtu };
+module.exports = { getStatusNtu };

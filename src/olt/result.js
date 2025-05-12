@@ -1,17 +1,16 @@
-const getNtuOnline = async (result, ipAddr) => {
+const getNtuOnline = async (result, ipAddr, ponSerial) => {
     try {
-        const targetSerial = '5443a641697c';
-        const resultStatus = result.Result.ontList.find(item => item.serial === targetSerial);
+        const resultStatus = result.Result.ontList.find(item => item.serial === ponSerial);
 
         if (resultStatus) {
-            console.log(`Найдена строка с серийным номером ${targetSerial}:`, resultStatus);
+            console.log(`Найдена строка с серийным номером ${ponSerial}:`, resultStatus);
             return {
                 ip: ipAddr,
                 success: true,
                 result: resultStatus,
             };
         } else {
-            console.log(`Серийный номер ${targetSerial} не найден`);
+            console.log(`Серийный номер ${ponSerial} не найден`);
             return {
                 ip: ipAddr,
                 success: false,
