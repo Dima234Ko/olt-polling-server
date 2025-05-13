@@ -28,7 +28,7 @@ const getStatusNtu = async (req, res, work) => {
                     if (onlineResult.foundPonSerial === true) {
                         return onlineResult;
                     } else {
-                        return {foundPonSerial: false};
+                        return { foundPonSerial: false };
                     }
                 } else if (work === 'ntuStatusList') {
                     const result = await getPonAndStatusCdata(ipAddr);
@@ -41,7 +41,7 @@ const getStatusNtu = async (req, res, work) => {
                     if (onlineResult.foundPonSerial === true) {
                         return onlineResult;
                     } else {
-                        return {foundPonSerial: false};
+                        return { foundPonSerial: false };
                     }
                 } else if (work === 'ntuStatusList') {
                     const result = await getPonAndStatusEltex(ipAddr);
@@ -71,31 +71,34 @@ const getStatusNtu = async (req, res, work) => {
             });
         }
 
-        const results = [];
+        // Параллельная обработка всех IP-адресов
+        const results = await Promise.all(
+            validation.ipAddresses.map(ipAddr => processIpAddress(ipAddr, ponSerial))
+        );
 
-        for (const ipAddr of validation.ipAddresses) {
-            const result = await processIpAddress(ipAddr, ponSerial);
-
-            if (result && result.foundPonSerial === true) {
+        // Проверка для ntuStatus: вернуть первый результат с foundPonSerial === true
+        if (work === 'ntuStatus') {
+            const foundResult = results.find(result => result && result.foundPonSerial === true);
+            if (foundResult) {
                 return res.status(200).json({
                     success: true,
-                    data: result,
+                    data: foundResult,
                 });
             }
-
-            results.push(result);
         }
 
+        // Для ntuStatusList возвращаем все результаты
         if (work === 'ntuStatusList') {
             return res.status(200).json({
                 success: true,
                 result: results
             });
-        } else {
-            return res.status(200).json({
-                success: false
-            });
         }
+
+        // Если не ntuStatusList и не найден результат с foundPonSerial === true
+        return res.status(200).json({
+            success: false
+        });
 
     } catch (error) {
         console.error('Ошибка при получении данных NTU:', error);
@@ -105,6 +108,5 @@ const getStatusNtu = async (req, res, work) => {
         });
     }
 };
-
 
 export { getStatusNtu };

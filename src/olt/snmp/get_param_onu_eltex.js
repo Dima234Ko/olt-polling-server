@@ -2,15 +2,12 @@ import snmp from 'net-snmp';
 
 const getOnuInfoEltex = async (ipAddress, serial) => {
     const ponList = await getPon(ipAddress);
-
     const statusList = await getStatus(ipAddress);
-
     const softList = await getSoftwareVersions(ipAddress);
-
     const rxList = await getReceivedOpticalPowers(ipAddress);
-
-    const data = mergeArraysById(ponList.Result, statusList.Result, softList.Result, rxList.Result);
-    console.log(data);
+    const mergedData = mergeArraysById(ponList.Result, statusList.Result, softList.Result, rxList.Result);
+    const data = mergedData.find(item => item.serial === serial);
+    return (data);
 
 };
 
@@ -50,7 +47,7 @@ const getPon = (ipAddress) => {
                     }
 
                     if (vb.oid.startsWith(serialOid)) {
-                        serialNumber = vb.value.toString('hex');
+                        serialNumber = vb.value.toString('hex').substring(4);
                         id = vb.oid.split('.').pop();
                         continueWalk = true;
                     }
