@@ -1,7 +1,7 @@
 import { getPonForCdata } from './olt/snmp/get_pon_cdata.js';
+import { getPonForEltex } from './olt/snmp/get_pon_eltex.js';
 import { getPonAndStatusCdata } from './olt/snmp/get_pon_and_status_cdata.js';
-// import { getPonAndStatusEltex } from './olt/snmp/get_pon_and_status_eltex.js';
-// import { getOntListEltex } from './olt/snmp/get_pon_and_status_eltex.js';
+import { getPonAndStatusEltex } from './olt/snmp/get_pon_and_status_eltex.js';
 import { getLtpModel } from './olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from './olt/result.js';
 import { processUnsupportedModel, validateInput } from './validate.js';
@@ -24,8 +24,7 @@ const getStatusNtu = async (req, res, work) => {
             if (model.Result === 'FD16') {
                 if (work === 'ntuStatus') {
                     const result = await getPonForCdata(ipAddr);
-                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial);
-
+                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
                     if (onlineResult.foundPonSerial === true) {
                         return onlineResult;
                     } else {
@@ -33,6 +32,19 @@ const getStatusNtu = async (req, res, work) => {
                     }
                 } else if (work === 'ntuStatusList') {
                     const result = await getPonAndStatusCdata(ipAddr);
+                    return await getNtuList(result, ipAddr);
+                }
+            } else if (model.Result === 'ELTE') {
+                if (work === 'ntuStatus') {
+                    const result = await getPonForEltex(ipAddr);
+                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
+                    if (onlineResult.foundPonSerial === true) {
+                        return onlineResult;
+                    } else {
+                        return {foundPonSerial: false};
+                    }
+                } else if (work === 'ntuStatusList') {
+                    const result = await getPonAndStatusEltex(ipAddr);
                     return await getNtuList(result, ipAddr);
                 }
             } else {

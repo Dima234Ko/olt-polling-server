@@ -1,11 +1,18 @@
 import snmp from 'net-snmp';
 
-const getPonAndStatusCdata = (ipAddress) => {
+const getOnuInfoEltex = async (ipAddress, serial) => {
+    const statusList = await getStatusNtuforEltex(ipAddress);
+    const data = statusList.Result.ontList.find(item => item.serial === serial);
+    return data;
+};
+
+const getStatusNtuforEltex = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
-        // OID
-        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3';
-        const runStateOid = '1.3.6.1.4.1.17409.2.8.4.1.1.7';
+        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
+        const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20';  // OID для состояния устройства
+        const softwareVersionOid = '1.3.6.1.4.1.35265.1.22.3.1.1.17'; // OID для версии прошивки
+        const receivedOpticalPowerOid = '1.3.6.1.4.1.35265.1.22.3.1.1.11';   // OID для Rx-уровня сигнала
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -13,65 +20,61 @@ const getPonAndStatusCdata = (ipAddress) => {
             port: 161
         });
 
-        // Функция для рекурсивного перебора ONT
-        function walk(currentSerialOid, currentRunStateOid) {
-            session.getNext([currentSerialOid, currentRunStateOid], (error, varbinds) => {
+        function walk(currentSerialOid, currentRunStateOid, currentSoftwareVersionOid, currentReceivedOpticalPowerOid) {
+            session.getNext([currentSerialOid, currentRunStateOid, currentSoftwareVersionOid, currentReceivedOpticalPowerOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    resolve({
+                    return resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
-                    return;
                 }
 
                 let continueWalk = false;
                 let serialNumber = null;
                 let runState = null;
+                let softwareVersion = null;
+                let receivedOpticalPower = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        resolve({
+                        return resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
-                        return;
                     }
 
-                    // Обработка серийного номера
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
                         continueWalk = true;
                     }
 
-                    // Обработка Run state
                     if (vb.oid.startsWith(runStateOid)) {
                         runState = vb.value;
                     }
+
+                    if (vb.oid.startsWith(softwareVersionOid)) {
+                        softwareVersion = vb.value.toString();
+                    }
+
+                    if (vb.oid.startsWith(receivedOpticalPowerOid)) {
+                        receivedOpticalPower = vb.value;
+                    }
                 }
 
-                // Добавляем ONT в список с серийным номером и Run state
                 if (serialNumber && runState !== null) {
-                    // Маппинг числовых значений Run state на читаемые строки
-                    const runStateMap = {
-                        1: 'Online',
-                        2: 'Offline',
-                        3: 'LOS',
-                        0: 'Unknown'
-
-                    };
-                    const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
                     ontList.push({
                         index: ontList.length + 1,
                         serial: serialNumber,
-                        runState: runStateStr
+                        runState: runState,
+                        softwareVersion: softwareVersion || 'Unknown',
+                        receivedOpticalPower: receivedOpticalPower !== null ? receivedOpticalPower : 'Unknown'
                     });
                 }
 
-                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
-                    walk(varbinds[0].oid, varbinds[1].oid);
+                    walk(varbinds[0].oid, varbinds[1].oid, varbinds[2].oid, varbinds[3].oid);
                 } else {
                     session.close();
                     console.log(`Опрос OLT: ${ipAddress} завершён`);
@@ -86,10 +89,8 @@ const getPonAndStatusCdata = (ipAddress) => {
             });
         }
 
-        // Начинаем обход с базовых OID
-        walk(serialOid, runStateOid);
+        walk(serialOid, runStateOid, softwareVersionOid, receivedOpticalPowerOid);
 
-        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
@@ -100,4 +101,4 @@ const getPonAndStatusCdata = (ipAddress) => {
     });
 };
 
-export { getPonAndStatusCdata };
+export { getOnuInfoEltex };
