@@ -1,6 +1,6 @@
 import snmp from 'net-snmp';
 
-const getOntListCdata = (ipAddress) => {
+const getPonAndStatusCdata = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
         // OID
@@ -59,7 +59,6 @@ const getOntListCdata = (ipAddress) => {
                         2: 'Offline',
                         3: 'LOS',
                         0: 'Unknown'
-                        // Добавьте другие значения на основе MIB C-Data
                     };
                     const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
                     ontList.push({
@@ -100,4 +99,4 @@ const getOntListCdata = (ipAddress) => {
     });
 };
 
-export { getOntListCdata };
+export { getPonAndStatusCdata };

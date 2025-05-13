@@ -1,8 +1,9 @@
-import { getOntListCdata } from './olt/snmp/get_ntu_for_olt_cdata.js';
-import { getOntListEltex } from './olt/snmp/get_ont_list_eltex.js';
+import { getPonForCdata } from './olt/snmp/get_pon_cdata.js';
+import { getPonAndStatusCdata } from './olt/snmp/get_pon_and_status_cdata.js';
+// import { getPonAndStatusEltex } from './olt/snmp/get_pon_and_status_eltex.js';
+// import { getOntListEltex } from './olt/snmp/get_pon_and_status_eltex.js';
 import { getLtpModel } from './olt/snmp/get_model_olt.js';
-import { getNtuOnline } from './olt/result.js';
-import { getNtuList } from './olt/result.js';
+import { getNtuOnline, getNtuList } from './olt/result.js';
 import { processUnsupportedModel, validateInput } from './validate.js';
 
 const getStatusNtu = async (req, res, work) => {
@@ -21,19 +22,21 @@ const getStatusNtu = async (req, res, work) => {
             }
 
             if (model.Result === 'FD16') {
-                const result = await getOntListCdata(ipAddr);
+               
                 if (work === 'ntuStatus') {
+                    const result = await getPonForCdata(ipAddr);
                     return await getNtuOnline(result, ipAddr, ponSerial);
                 } else if (work === 'ntuStatusList') {
+                    const result = await getPonAndStatusCdata(ipAddr);
                     return await getNtuList(result, ipAddr);
                 }
-            } else if (model.Result === 'ELTE') {
-                const result = await getOntListEltex(ipAddr);
-                if (work === 'ntuStatus') {
-                    return await getNtuOnline(result, ipAddr, ponSerial);
-                } else if (work === 'ntuStatusList') {
-                    return await getNtuList(result, ipAddr);
-                }
+            // } else if (model.Result === 'ELTE') {
+            //     const result = await getOntListEltex(ipAddr);
+            //     if (work === 'ntuStatus') {
+            //         return await getNtuOnline(result, ipAddr, ponSerial);
+            //     } else if (work === 'ntuStatusList') {
+            //         return await getNtuList(result, ipAddr);
+            //     }
             } else {
                 return processUnsupportedModel(ipAddr, model.Result);
             }

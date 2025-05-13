@@ -1,10 +1,10 @@
 import snmp from 'net-snmp';
 
-const getOntListEltex = (ipAddress) => {
+const getPonForCdata = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
-        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
-        const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20';  // OID для состояния устройства
+        // OID для серийного номера
+        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3';
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -12,59 +12,49 @@ const getOntListEltex = (ipAddress) => {
             port: 161
         });
 
-        // Маппинг значений RunState
-        const runStateMap = {
-            1: 'Online',
-            2: 'Offline',
-            3: 'LOS',
-            0: 'Unknown'
-            // Добавьте другие значения на основе MIB C-Data
-        };
-
-        function walk(currentSerialOid, currentRunStateOid) {
-            session.getNext([currentSerialOid, currentRunStateOid], (error, varbinds) => {
+        // Функция для рекурсивного перебора ONT
+        function walk(currentSerialOid) {
+            session.getNext([currentSerialOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    return resolve({
+                    resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
+                    return;
                 }
 
                 let continueWalk = false;
                 let serialNumber = null;
-                let runState = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        return resolve({
+                        resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
+                        return;
                     }
 
+                    // Обработка серийного номера
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
                         continueWalk = true;
                     }
-
-                    if (vb.oid.startsWith(runStateOid)) {
-                        runState = vb.value;
-                    }
                 }
 
-                if (serialNumber && runState !== null) {
-                    const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
+                // Добавляем ONT в список с серийным номером
+                if (serialNumber) {
                     ontList.push({
                         index: ontList.length + 1,
-                        serial: serialNumber,
-                        runState: runStateStr
+                        serial: serialNumber
                     });
                 }
 
+                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
-                    walk(varbinds[0].oid, varbinds[1].oid);
+                    walk(varbinds[0].oid);
                 } else {
                     session.close();
                     console.log(`Опрос OLT: ${ipAddress} завершён`);
@@ -79,8 +69,10 @@ const getOntListEltex = (ipAddress) => {
             });
         }
 
-        walk(serialOid, runStateOid);
+        // Начинаем обход с базового OID
+        walk(serialOid);
 
+        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
@@ -91,4 +83,4 @@ const getOntListEltex = (ipAddress) => {
     });
 };
 
-export { getOntListEltex };
+export { getPonForCdata };
