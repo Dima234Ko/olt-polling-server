@@ -59,6 +59,7 @@ const getPonAndStatusCdata = (ipAddress) => {
                         2: 'Offline',
                         3: 'LOS',
                         0: 'Unknown'
+
                     };
                     const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
                     ontList.push({

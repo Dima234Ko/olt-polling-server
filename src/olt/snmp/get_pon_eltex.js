@@ -1,10 +1,9 @@
 import snmp from 'net-snmp';
 
-const getPonForCdata = (ipAddress) => {
+const getPonForEltex = (ipAddress) => {
     return new Promise((resolve) => {
         const serialList = [];
-        // OID для серийного номера
-        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3';
+        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -12,16 +11,14 @@ const getPonForCdata = (ipAddress) => {
             port: 161
         });
 
-        // Функция для рекурсивного перебора ONT
         function walk(currentSerialOid) {
             session.getNext([currentSerialOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    resolve({
+                    return resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
-                    return;
                 }
 
                 let continueWalk = false;
@@ -30,21 +27,18 @@ const getPonForCdata = (ipAddress) => {
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        resolve({
+                        return resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
-                        return;
                     }
 
-                    // Обработка серийного номера
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
                         continueWalk = true;
                     }
                 }
 
-                // Добавляем ONT в список с серийным номером
                 if (serialNumber) {
                     serialList.push({
                         index: serialList.length + 1,
@@ -52,7 +46,6 @@ const getPonForCdata = (ipAddress) => {
                     });
                 }
 
-                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
                     walk(varbinds[0].oid);
                 } else {
@@ -66,10 +59,8 @@ const getPonForCdata = (ipAddress) => {
             });
         }
 
-        // Начинаем обход с базового OID
         walk(serialOid);
 
-        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
@@ -80,4 +71,4 @@ const getPonForCdata = (ipAddress) => {
     });
 };
 
-export { getPonForCdata };
+export { getPonForEltex };
