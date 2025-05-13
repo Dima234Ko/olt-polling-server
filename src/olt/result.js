@@ -1,19 +1,24 @@
+import {getOnuInfoCdata} from './snmp/get_param_onu_cdata.js'
+
 const getNtuOnline = async (result, ipAddr, ponSerial) => {
     try {
         const resultStatus = result.Result.ontList.find(item => item.serial === ponSerial);
 
         if (resultStatus) {
             console.log(`Найдена строка с серийным номером ${ponSerial}:`, resultStatus);
-            return {
-                ip: ipAddr,
-                success: true,
-                result: resultStatus,
-            };
+            const result = await getOnuInfoCdata (ipAddr, ponSerial);
+            if (result){
+                return {
+                    ip: ipAddr,
+                    foundPonSerial: true,
+                    result
+                };
+            }
         } else {
             console.log(`Серийный номер ${ponSerial} не найден`);
             return {
                 ip: ipAddr,
-                success: false,
+                foundPonSerial: false,
             };
         }
     } catch (error) {
@@ -44,7 +49,4 @@ const getNtuList = async (result, ipAddr) => {
 };
 
 
-module.exports = {
-    getNtuOnline,
-    getNtuList
-};
+export { getNtuOnline, getNtuList };

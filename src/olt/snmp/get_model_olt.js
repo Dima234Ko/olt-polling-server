@@ -1,6 +1,6 @@
-const snmp = require('net-snmp');
+import snmp from 'net-snmp';
 
-function getLtpModel(ipAddress) {
+const getLtpModel = (ipAddress) => {
     return new Promise((resolve) => {
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -35,7 +35,7 @@ function getLtpModel(ipAddress) {
             // Успешный результат
             return resolve({
                 Success: true,
-                Result: varbinds[0].value.toString().substring(0, 4) // Аналог prettyPrint()[0:4]
+                Result: varbinds[0].value.toString().substring(0, 4) 
             });
         });
 
@@ -48,8 +48,6 @@ function getLtpModel(ipAddress) {
             });
         });
     });
-}
-
-module.exports = {
-    getLtpModel 
 };
+
+export { getLtpModel };

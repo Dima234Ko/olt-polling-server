@@ -1,6 +1,6 @@
-const snmp = require('net-snmp');
+import snmp from 'net-snmp';
 
-function getOntListCdata(ipAddress) {
+const getPonAndStatusCdata = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
         // OID
@@ -53,13 +53,12 @@ function getOntListCdata(ipAddress) {
 
                 // Добавляем ONT в список с серийным номером и Run state
                 if (serialNumber && runState !== null) {
-                    // Маппинг числовых значений Run state на читаемые строки (обновите после проверки)
+                    // Маппинг числовых значений Run state на читаемые строки
                     const runStateMap = {
                         1: 'Online',
                         2: 'Offline',
                         3: 'LOS',
                         0: 'Unknown'
-                        // Добавьте другие значения на основе MIB C-Data
                     };
                     const runStateStr = runStateMap[runState] || `Unknown (${runState})`;
                     ontList.push({
@@ -98,8 +97,6 @@ function getOntListCdata(ipAddress) {
             });
         });
     });
-}
-
-module.exports = {
-    getOntListCdata
 };
+
+export { getPonAndStatusCdata };
