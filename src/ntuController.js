@@ -22,21 +22,19 @@ const getStatusNtu = async (req, res, work) => {
             }
 
             if (model.Result === 'FD16') {
-               
                 if (work === 'ntuStatus') {
                     const result = await getPonForCdata(ipAddr);
-                    return await getNtuOnline(result, ipAddr, ponSerial);
+                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial);
+
+                    if (onlineResult.foundPonSerial === true) {
+                        return onlineResult;
+                    } else {
+                        return {foundPonSerial: false};
+                    }
                 } else if (work === 'ntuStatusList') {
                     const result = await getPonAndStatusCdata(ipAddr);
                     return await getNtuList(result, ipAddr);
                 }
-            // } else if (model.Result === 'ELTE') {
-            //     const result = await getOntListEltex(ipAddr);
-            //     if (work === 'ntuStatus') {
-            //         return await getNtuOnline(result, ipAddr, ponSerial);
-            //     } else if (work === 'ntuStatusList') {
-            //         return await getNtuList(result, ipAddr);
-            //     }
             } else {
                 return processUnsupportedModel(ipAddr, model.Result);
             }
@@ -61,14 +59,32 @@ const getStatusNtu = async (req, res, work) => {
             });
         }
 
-        const results = await Promise.all(
-            validation.ipAddresses.map(ipAddr => processIpAddress(ipAddr, ponSerial))
-        );
+        const results = [];
 
-        return res.status(200).json({
-            success: true,
-            data: results,
-        });
+        for (const ipAddr of validation.ipAddresses) {
+            const result = await processIpAddress(ipAddr, ponSerial);
+
+            if (result && result.foundPonSerial === true) {
+                return res.status(200).json({
+                    success: true,
+                    data: result,
+                });
+            }
+
+            results.push(result);
+        }
+
+        if (work === 'ntuStatusList') {
+            return res.status(200).json({
+                success: true,
+                result: results
+            });
+        } else {
+            return res.status(200).json({
+                success: false
+            });
+        }
+
     } catch (error) {
         console.error('Ошибка при получении данных NTU:', error);
         return res.status(500).json({
@@ -77,5 +93,6 @@ const getStatusNtu = async (req, res, work) => {
         });
     }
 };
+
 
 export { getStatusNtu };

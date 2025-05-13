@@ -9,14 +9,14 @@ const getNtuOnline = async (result, ipAddr, ponSerial) => {
             const result = await getOnuInfoCdata (ipAddr, ponSerial);
             return {
                 ip: ipAddr,
-                success: true,
+                foundPonSerial: true,
                 result
             };
         } else {
             console.log(`Серийный номер ${ponSerial} не найден`);
             return {
                 ip: ipAddr,
-                success: false,
+                foundPonSerial: false,
             };
         }
     } catch (error) {
