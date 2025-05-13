@@ -1,7 +1,9 @@
-require('dotenv').config(); // Подключение переменных окружения из .env
+import { config } from 'dotenv'; // Подключение переменных окружения из .env
+import express from 'express';
+import ntuRouter from './src/ntuRouter.js';
 
-const express = require('express');
-const ntuRouter = require('./src/ntuRouter');
+// Инициализация переменных окружения
+config();
 
 const app = express();
 

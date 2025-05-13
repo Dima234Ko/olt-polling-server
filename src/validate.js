@@ -33,7 +33,4 @@ const processUnsupportedModel = (ipAddr, modelResult) => ({
     Result: `Устройство ${ipAddr} не поддерживается (модель: ${modelResult})`,
 });
 
-module.exports = {
-    processUnsupportedModel,
-    validateInput
-};
+export { processUnsupportedModel, validateInput };

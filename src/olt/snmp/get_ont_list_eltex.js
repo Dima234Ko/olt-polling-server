@@ -1,6 +1,6 @@
-const snmp = require('net-snmp');
+import snmp from 'net-snmp';
 
-function getOntListEltex(ipAddress) {
+const getOntListEltex = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
         const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
@@ -89,6 +89,6 @@ function getOntListEltex(ipAddress) {
             });
         });
     });
-}
+};
 
-module.exports = { getOntListEltex };
+export { getOntListEltex };

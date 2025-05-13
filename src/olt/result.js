@@ -43,8 +43,4 @@ const getNtuList = async (result, ipAddr) => {
     }
 };
 
-
-module.exports = {
-    getNtuOnline,
-    getNtuList
-};
+export { getNtuOnline, getNtuList };

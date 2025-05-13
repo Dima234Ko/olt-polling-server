@@ -1,10 +1,9 @@
-const { getOntListCdata } = require('./olt/snmp/get_ntu_for_olt_cdata');
-const { getOntListEltex } = require('./olt/snmp/get_ont_list_eltex');
-const { getLtpModel } = require('./olt/snmp/get_model_olt');
-const { getNtuOnline } = require('./olt/result');
-const { getNtuList } = require('./olt/result');
-const { processUnsupportedModel } = require('./validate');
-const { validateInput } = require('./validate');
+import { getOntListCdata } from './olt/snmp/get_ntu_for_olt_cdata.js';
+import { getOntListEltex } from './olt/snmp/get_ont_list_eltex.js';
+import { getLtpModel } from './olt/snmp/get_model_olt.js';
+import { getNtuOnline } from './olt/result.js';
+import { getNtuList } from './olt/result.js';
+import { processUnsupportedModel, validateInput } from './validate.js';
 
 const getStatusNtu = async (req, res, work) => {
     const processIpAddress = async (ipAddr, ponSerial) => {
@@ -76,4 +75,4 @@ const getStatusNtu = async (req, res, work) => {
     }
 };
 
-module.exports = { getStatusNtu };
+export { getStatusNtu };

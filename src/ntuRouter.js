@@ -1,9 +1,9 @@
-const express = require('express');
-const controller = require('./ntuController');
+import express from 'express';
+import * as controller from './ntuController.js';
 
 const router = express.Router();
 
 router.get('/ntuStatus', (req, res) => controller.getStatusNtu(req, res, 'ntuStatus'));
 router.get('/ntuStatusList', (req, res) => controller.getStatusNtu(req, res, 'ntuStatusList'));
 
-module.exports = router;
+export default router;
