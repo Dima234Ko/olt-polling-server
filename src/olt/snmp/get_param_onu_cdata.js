@@ -1,19 +1,92 @@
 import snmp from 'net-snmp';
+import {filterLists} from '../work_data.js';
 
 const getOnuInfoCdata = async (ipAddress, serial) => {
-    const statusList = await getStatusNtufoCdata (ipAddress);
-    const onlineList  = statusList.ontList.filter(ont => ont.runState === 1);
-    const infoList = await getInfoOnuCdata(ipAddress);
-    const mergedData = mergeOnuData(onlineList, infoList.ontList);
-    const data = mergedData.find(item => item.serial === serial);
+    const ponList = await getPon(ipAddress);
+    const statusList = await getStatus(ipAddress);
+    const softList = await getSoftwareVersions(ipAddress);
+    const rxList = await getReceivedOpticalPowers(ipAddress);
+    const data = await filterLists(ponList, statusList, softList, rxList, serial);
     return (data);
 };
 
-const getStatusNtufoCdata = (ipAddress) => {
+
+const getPon = (ipAddress) => {
     return new Promise((resolve) => {
-        const ontList = [];
-        // OID для нужных данных
-        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3';  // Серийный номер
+        const serialList = [];
+        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3'; // Серийный номер
+
+        // Создаем SNMP-сессию
+        const session = snmp.createSession(ipAddress, 'public', {
+            version: snmp.Version2c,
+            port: 161
+        });
+
+        function walk(currentSerialOid) {
+            session.getNext([currentSerialOid], (error, varbinds) => {
+                if (error) {
+                    session.close();
+                    return resolve({
+                        Success: false,
+                        Result: `${ipAddress} - ${error.message}`
+                    });
+                }
+
+                let continueWalk = false;
+                let serialNumber = null;
+                let id = null;
+
+                for (const vb of varbinds) {
+                    if (snmp.isVarbindError(vb)) {
+                        session.close();
+                        return resolve({
+                            Success: false,
+                            Result: `${ipAddress} - ${snmp.varbindError(vb)}`
+                        });
+                    }
+
+                    if (vb.oid.startsWith(serialOid)) {
+                        serialNumber = vb.value.toString('hex').substring(4);
+                        id = vb.oid.split('.').pop();
+                        continueWalk = true;
+                    }
+                }
+
+                if (serialNumber && id) {
+                    serialList.push({
+                        id,
+                        serial: serialNumber
+                    });
+                }
+
+                if (continueWalk) {
+                    walk(varbinds[0].oid);
+                } else {
+                    session.close();
+                    return resolve({
+                        Success: true,
+                        Result: serialList
+                    });
+                }
+            });
+        }
+
+        walk(serialOid);
+
+        session.on('timeout', () => {
+            session.close();
+            resolve({
+                Success: false,
+                Result: `${ipAddress} - Timeout`
+            });
+        });
+    });
+};
+
+
+const getStatus = (ipAddress) => {
+    return new Promise((resolve) => {
+        const runStateList = [];
         const runStateOid = '1.3.6.1.4.1.17409.2.8.4.1.1.7'; // Статус
 
         // Создаем SNMP-сессию
@@ -22,69 +95,57 @@ const getStatusNtufoCdata = (ipAddress) => {
             port: 161
         });
 
-        // Функция для рекурсивного перебора ONT
-        function walk(currentSerialOid, currentRunStateOid) {
-            session.getNext([currentSerialOid, currentRunStateOid], (error, varbinds) => {
+        function walk(currentRunStateOid) {
+            session.getNext([currentRunStateOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    resolve({
+                    return resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
-                    return;
                 }
 
                 let continueWalk = false;
-                let serialNumber = null;
                 let runState = null;
+                let id = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        resolve({
+                        return resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
-                        return;
                     }
 
-                    // Обработка серийного номера
-                    if (vb.oid.startsWith(serialOid)) {
-                        serialNumber = vb.value.toString('hex').substring(4);
-                        continueWalk = true;
-                    }
-
-                    // Обработка Run state
                     if (vb.oid.startsWith(runStateOid)) {
                         runState = vb.value;
+                        id = vb.oid.split('.').pop();
+                        continueWalk = true;
                     }
                 }
 
-                // Добавляем ONT в список с серийным номером и Run state
-                if (serialNumber && runState !== null) {
-                    ontList.push({
-                        serial: serialNumber,
-                        runState: runState
+                if (runState !== null && id) {
+                    runStateList.push({
+                        id,
+                        runState
                     });
                 }
 
-                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
-                    walk(varbinds[0].oid, varbinds[1].oid);
+                    walk(varbinds[0].oid);
                 } else {
                     session.close();
                     return resolve({
                         Success: true,
-                        ontList: ontList
+                        Result: runStateList
                     });
                 }
             });
         }
 
-        // Начинаем обход с базовых OID
-        walk(serialOid, runStateOid);
+        walk(runStateOid);
 
-        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
@@ -95,12 +156,11 @@ const getStatusNtufoCdata = (ipAddress) => {
     });
 };
 
-const getInfoOnuCdata = (ipAddress) => {
+
+const getSoftwareVersions = (ipAddress) => {
     return new Promise((resolve) => {
-        const ontList = [];
-        // OID для нужных данных
-        const softwareVersionOid = '1.3.6.1.4.1.17409.2.8.4.2.1.2';  // Прошивка
-        const receivedPowerOid = '1.3.6.1.4.1.17409.2.8.4.4.1.4';    // Входящий сигнал
+        const softwareVersionList = [];
+        const softwareVersionOid = '1.3.6.1.4.1.17409.2.8.4.2.1.2';
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -108,70 +168,57 @@ const getInfoOnuCdata = (ipAddress) => {
             port: 161
         });
 
-        // Функция для рекурсивного перебора ONT
-        function walk(currentSoftwareVersionOid, currentReceivedPowerOid) {
-            session.getNext([currentSoftwareVersionOid, currentReceivedPowerOid], (error, varbinds) => {
+        function walk(currentSoftwareVersionOid) {
+            session.getNext([currentSoftwareVersionOid], (error, varbinds) => {
                 if (error) {
                     session.close();
-                    resolve({
+                    return resolve({
                         Success: false,
                         Result: `${ipAddress} - ${error.message}`
                     });
-                    return;
                 }
 
                 let continueWalk = false;
                 let softwareVersion = null;
-                let receivedPower = null;
+                let id = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
                         session.close();
-                        resolve({
+                        return resolve({
                             Success: false,
                             Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                         });
-                        return;
                     }
 
-                    // Обработка версии прошивки
                     if (vb.oid.startsWith(softwareVersionOid)) {
                         softwareVersion = vb.value.toString();
-                        continueWalk = true;  // Если данные есть, продолжаем обход
-                    }
-
-                    // Обработка входящего сигнала
-                    if (vb.oid.startsWith(receivedPowerOid)) {
-                        receivedPower = vb.value;
+                        id = vb.oid.split('.').pop();
+                        continueWalk = true;
                     }
                 }
 
-                // Добавляем ONT в список с прошивкой и уровнем сигнала
-                if (softwareVersion !== null || receivedPower !== null) {
-                    ontList.push({
-                        softwareVersion: softwareVersion || 'Unknown',
-                        receivedOpticalPower: receivedPower !== null ? receivedPower : 'Unknown'
+                if (softwareVersion && id) {
+                    softwareVersionList.push({
+                        id,
+                        softwareVersion
                     });
                 }
 
-                // Продолжаем перебор, если еще есть данные в поддереве
                 if (continueWalk) {
-                    // Применяем новый OID для следующей итерации, чтобы продолжить поиск данных
-                    walk(varbinds[0].oid, varbinds[1].oid);
+                    walk(varbinds[0].oid);
                 } else {
                     session.close();
                     return resolve({
                         Success: true,
-                        ontList: ontList
+                        Result: softwareVersionList
                     });
                 }
             });
         }
 
-        // Начинаем обход с базовых OID
-        walk(softwareVersionOid, receivedPowerOid);
+        walk(softwareVersionOid);
 
-        // Обработка таймаута
         session.on('timeout', () => {
             session.close();
             resolve({
@@ -181,6 +228,86 @@ const getInfoOnuCdata = (ipAddress) => {
         });
     });
 };
+
+
+const getReceivedOpticalPowers = (ipAddress) => {
+    return new Promise((resolve) => {
+        const receivedPowerList = [];
+        const receivedPowerOid = '1.3.6.1.4.1.17409.2.8.4.4.1.4'; 
+
+        // Создаем SNMP-сессию
+        const session = snmp.createSession(ipAddress, 'public', {
+            version: snmp.Version2c,
+            port: 161
+        });
+
+        function walk(currentReceivedPowerOid) {
+            session.getNext([currentReceivedPowerOid], (error, varbinds) => {
+                if (error) {
+                    session.close();
+                    return resolve({
+                        Success: false,
+                        Result: `${ipAddress} - ${error.message}`
+                    });
+                }
+
+                let continueWalk = false;
+                let receivedPower = null;
+                let id = null;
+
+                for (const vb of varbinds) {
+                    if (snmp.isVarbindError(vb)) {
+                        session.close();
+                        return resolve({
+                            Success: false,
+                            Result: `${ipAddress} - ${snmp.varbindError(vb)}`
+                        });
+                    }
+
+                    if (vb.oid.startsWith(receivedPowerOid)) {
+                        receivedPower = vb.value;
+                        id = vb.oid.split('.').slice(-3)[0]; // Извлекаем предпоследнюю часть OID перед .0.0
+                        continueWalk = true;
+                    }
+                }
+
+                if (receivedPower !== null && id) {
+                    receivedPowerList.push({
+                        id,
+                        receivedOpticalPower: receivedPower
+                    });
+                }
+
+                if (continueWalk) {
+                    walk(varbinds[0].oid);
+                } else {
+                    session.close();
+                    return resolve({
+                        Success: true,
+                        Result: receivedPowerList
+                    });
+                }
+            });
+        }
+
+        walk(receivedPowerOid);
+
+        session.on('timeout', () => {
+            session.close();
+            resolve({
+                Success: false,
+                Result: `${ipAddress} - Timeout`
+            });
+        });
+    });
+};
+
+
+
+
+
+
+
 
 
 const mergeOnuData = (statusList, infoList) => {
