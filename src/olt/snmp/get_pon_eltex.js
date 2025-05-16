@@ -1,4 +1,5 @@
 import snmp from 'net-snmp';
+import writeToFile from '../../writeLog.js';
 
 const getPonForEltex = (ipAddress) => {
     return new Promise((resolve) => {
@@ -50,7 +51,7 @@ const getPonForEltex = (ipAddress) => {
                     walk(varbinds[0].oid);
                 } else {
                     session.close();
-                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    writeToFile(`Опрос OLT: ${ipAddress} завершён`);
                     return resolve({
                         Success: true,
                         Result: serialList

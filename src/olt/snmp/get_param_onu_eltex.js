@@ -1,5 +1,6 @@
 import snmp from 'net-snmp';
 import {filterLists} from '../work_data.js';
+import writeToFile from '../../writeLog.js';
 
 const getOnuInfoEltex = async (ipAddress, serial) => {
     const ponList = await getPon(ipAddress);
@@ -63,7 +64,7 @@ const getPon = (ipAddress) => {
                     walk(varbinds[0].oid);
                 } else {
                     session.close();
-                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    writeToFile(`Опрос OLT: ${ipAddress} завершён`);
                     return resolve({
                         Success: true,
                         Result: serialList

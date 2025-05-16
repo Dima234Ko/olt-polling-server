@@ -67,7 +67,7 @@ const getPonAndStatusEltex = (ipAddress) => {
                     walk(varbinds[0].oid, varbinds[1].oid);
                 } else {
                     session.close();
-                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    writeToFile(`Опрос OLT: ${ipAddress} завершён`);
                     return resolve({
                         Success: true,
                         Result: {
