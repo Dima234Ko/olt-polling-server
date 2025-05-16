@@ -1,9 +1,11 @@
 import { config } from 'dotenv'; 
 import express from 'express';
 import ntuRouter from './src/ntuRouter.js';
-import writeToFile from './src/writeLog.js'
+import writeToFile from './src/writeLog.js';
+import runDeleteOldLogsCyclically from './src/deleteLog.js';
 
 config();
+runDeleteOldLogsCyclically();
 
 const app = express();
 app.use(express.json());
@@ -11,7 +13,7 @@ app.use(express.json());
 // Middleware для обработки ошибок парсинга JSON
 app.use((err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-        writeToFile ('Передан не верный формат параметров');
+        writeToFile ('Передан не верный формат параметров', '[FAIL]');
         return res.status(400).json({
             success: false,
             error: 'Неверный формат параметров'
