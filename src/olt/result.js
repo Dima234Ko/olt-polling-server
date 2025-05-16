@@ -34,24 +34,24 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
             };
         }
     } catch (error) {
-        console.error(`Ошибка при обработке для ${ipAddr}: ${error.message}`);
+        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
         return {
             ip: ipAddr,
             Success: false,
-            Result: `Ошибка при обработке ${ipAddr}: ${error.message}`,
+            Result: `Ошибка при опросе ${ipAddr}: ${error.message}`,
         };
     }
 };
 
 const getNtuList = async (result, ipAddr) => {
     try {
-        console.log(`Получены данные Eltex для IP-адреса ${ipAddr}:`);
+        console.log(`Получены данные для IP-адреса ${ipAddr}:`);
         return {
             ip: ipAddr,
             ...result,
         };
     } catch (error) {
-        console.error(`Ошибка при обработке ELTE для ${ipAddr}: ${error.message}`);
+        console.error(`Ошибка при обработке данных для ${ipAddr}: ${error.message}`);
         return {
             ip: ipAddr,
             Success: false,

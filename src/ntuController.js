@@ -25,7 +25,7 @@ const getStatusNtu = async (req, res, work) => {
                 if (work === 'ntuStatus') {
                     const result = await getPonForCdata(ipAddr);
                     const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
-                    if (onlineResult.foundPonSerial === true) {
+                    if (onlineResult?.foundPonSerial === true) {
                         return onlineResult;
                     } else {
                         return { foundPonSerial: false };
@@ -38,7 +38,7 @@ const getStatusNtu = async (req, res, work) => {
                 if (work === 'ntuStatus') {
                     const result = await getPonForEltex(ipAddr);
                     const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
-                    if (onlineResult.foundPonSerial === true) {
+                    if (onlineResult?.foundPonSerial === true) {
                         return onlineResult;
                     } else {
                         return { foundPonSerial: false };

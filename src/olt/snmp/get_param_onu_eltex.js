@@ -47,7 +47,7 @@ const getPon = (ipAddress) => {
 
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
-                        id = vb.oid.split('.').pop();
+                        id = vb.oid.slice(serialOid.length + 1);
                         continueWalk = true;
                     }
                 }
@@ -85,8 +85,6 @@ const getPon = (ipAddress) => {
 };
 
 
-
-
 const getStatus = (ipAddress) => {
     const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20'; 
 
@@ -122,7 +120,7 @@ const getStatus = (ipAddress) => {
 
                     if (vb.oid.startsWith(runStateOid)) {
                         runState = vb.value;
-                        id = vb.oid.split('.').pop();
+                        id = vb.oid.slice(runStateOid.length + 1);
                         continueWalk = true;
                     }
                 }
@@ -157,6 +155,8 @@ const getStatus = (ipAddress) => {
         });
     });
 };
+
+
 
 
 
@@ -195,7 +195,7 @@ const getSoftwareVersions = (ipAddress) => {
 
                     if (vb.oid.startsWith(softwareVersionOid)) {
                         value = vb.value.toString() || 'Unknown';
-                        id = vb.oid.split('.').pop();
+                        id = vb.oid.slice(softwareVersionOid.length + 1);
                         continueWalk = true;
                     }
                 }
@@ -267,7 +267,7 @@ const getReceivedOpticalPowers = (ipAddress) => {
 
                     if (vb.oid.startsWith(receivedOpticalPowerOid)) {
                         value = vb.value !== null ? vb.value : 'Unknown';
-                        id = vb.oid.split('.').pop();
+                        id = vb.oid.slice(receivedOpticalPowerOid.length + 1);
                         continueWalk = true;
                     }
                 }
