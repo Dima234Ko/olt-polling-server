@@ -1,11 +1,12 @@
 import {getOnuInfoCdata} from './snmp/get_param_onu_cdata.js'
 import {getOnuInfoEltex} from './snmp/get_param_onu_eltex.js'
+import writeToFile from '../writeLog.js';
 
 const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
     try {
         const resultStatus = result.Result.find(item => item.serial === ponSerial);
         if (resultStatus) {
-            console.log(`NTU: ${ponSerial} найдена`, resultStatus);
+            writeToFile(`NTU: ${ponSerial} НАЙДЕНА НА OLT ${model} ${ipAddr}`, resultStatus);
 
             if (model === 'FD16') {
                 const result = await getOnuInfoCdata (ipAddr, ponSerial);
@@ -27,7 +28,7 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
                 }
             }
         } else {
-            console.log(`NTU ${ponSerial} не найдена на сети`);
+            writeToFile(`NTU ${ponSerial} не найдена на olt`);
             return {
                 ip: ipAddr,
                 foundPonSerial: false,
@@ -35,6 +36,7 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
         }
     } catch (error) {
         console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`);
         return {
             ip: ipAddr,
             Success: false,
@@ -45,13 +47,14 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
 
 const getNtuList = async (result, ipAddr) => {
     try {
-        console.log(`Получены данные для IP-адреса ${ipAddr}:`);
+        writeToFile(`Получены данные для IP-адреса ${ipAddr}:`);
         return {
             ip: ipAddr,
             ...result,
         };
     } catch (error) {
-        console.error(`Ошибка при обработке данных для ${ipAddr}: ${error.message}`);
+        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`);
         return {
             ip: ipAddr,
             Success: false,

@@ -9,7 +9,7 @@ const validateInput = (ip) => {
     if (!ip) {
         return {
             valid: false,
-            error: 'IP-адрес или массив IP-адресов не указан в теле запроса',
+            error: 'Не указан IP-адрес',
         };
     }
 

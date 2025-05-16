@@ -1,4 +1,5 @@
 import snmp from 'net-snmp';
+import writeToFile from '../../writeLog.js';
 
 const getPonAndStatusCdata = (ipAddress) => {
     return new Promise((resolve) => {
@@ -74,7 +75,7 @@ const getPonAndStatusCdata = (ipAddress) => {
                     walk(varbinds[0].oid, varbinds[1].oid);
                 } else {
                     session.close();
-                    console.log(`Опрос OLT: ${ipAddress} завершён`);
+                    writeToFile(`Опрос OLT: ${ipAddress} завершён`);
                     return resolve({
                         Success: true,
                         Result: {

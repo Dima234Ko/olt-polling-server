@@ -5,13 +5,14 @@ import { getPonAndStatusEltex } from './olt/snmp/get_pon_and_status_eltex.js';
 import { getLtpModel } from './olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from './olt/result.js';
 import { processUnsupportedModel, validateInput } from './validate.js';
+import writeToFile from './writeLog.js'
 
 const getStatusNtu = async (req, res, work) => {
     const processIpAddress = async (ipAddr, ponSerial) => {
         try {
-            console.log(`Обработка IP-адреса: ${ipAddr}`);
+            writeToFile (`Обработка IP-адреса: ${ipAddr}`);
             const model = await getLtpModel(ipAddr);
-            console.log(`Получена модель для IP-адреса ${ipAddr}: ${model.Result}`);
+            writeToFile (`Получена модель для IP-адреса ${ipAddr}: ${model.Result}`);
 
             if (!model.Success) {
                 return {
@@ -51,7 +52,7 @@ const getStatusNtu = async (req, res, work) => {
                 return processUnsupportedModel(ipAddr, model.Result);
             }
         } catch (error) {
-            console.error(`Ошибка при обработке ${ipAddr}: ${error.message}`);
+            writeToFile (`Ошибка при обработке ${ipAddr}: ${error.message}`);
             return {
                 ip: ipAddr,
                 Success: false,
@@ -61,7 +62,15 @@ const getStatusNtu = async (req, res, work) => {
     };
 
     try {
-        const { ip, ponSerial } = req.body;
+        const { ip, ponSerial, ...unexpectedParams } = req.body;
+
+        if (Object.keys(unexpectedParams).length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Неверные имена параметров',
+            });
+        }
+
         const validation = validateInput(ip);
 
         if (!validation.valid) {
@@ -99,9 +108,8 @@ const getStatusNtu = async (req, res, work) => {
         return res.status(200).json({
             success: false
         });
-
     } catch (error) {
-        console.error('Ошибка при получении данных NTU:', error);
+        writeToFile ('Ошибка при получении данных NTU:', error);
         return res.status(500).json({
             success: false,
             error: `Ошибка сервера: ${error.message}`,
