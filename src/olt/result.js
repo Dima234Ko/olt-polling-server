@@ -6,7 +6,7 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
     try {
         const resultStatus = result.Result.find(item => item.serial === ponSerial);
         if (resultStatus) {
-            writeToFile(`NTU: ${ponSerial} НАЙДЕНА НА OLT ${model} ${ipAddr}`, resultStatus);
+            await writeToFile(`NTU ${ponSerial} найдена на olt ${model} ${ipAddr}`, '[SUCCESS]');
 
             if (model === 'FD16') {
                 const result = await getOnuInfoCdata (ipAddr, ponSerial);
@@ -36,7 +36,7 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
         }
     } catch (error) {
         console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
-        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`, '[FAIL]');
         return {
             ip: ipAddr,
             Success: false,
@@ -53,7 +53,7 @@ const getNtuList = async (result, ipAddr) => {
             ...result,
         };
     } catch (error) {
-        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`, '[FAIL]');
         writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`);
         return {
             ip: ipAddr,
