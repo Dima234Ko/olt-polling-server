@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const deleteOldLogs = async (logFilePath) => {
     try {
         const now = new Date();
-        const fiveDaysAgo = new Date(now.getTime() -  5 * 60 * 1000);
+        const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
         const fileContent = await fs.readFile(logFilePath, 'utf-8');
         const lines = fileContent.split('\n').filter(line => line.trim() !== '');
 
@@ -39,7 +39,7 @@ const deleteOldLogs = async (logFilePath) => {
 };
 
 const runDeleteOldLogsCyclically = async () => {
-    const delay = 5 * 60 * 1000;
+    const delay = 5 * 24 * 60 * 60 * 1000;
     const filePath = path.join(__dirname, '../log.txt');
 
     const run = async () => {
