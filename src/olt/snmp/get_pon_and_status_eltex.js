@@ -1,4 +1,5 @@
 import snmp from 'net-snmp';
+import writeToFile from '../../writeLog.js';
 
 const getPonAndStatusEltex = (ipAddress) => {
     return new Promise((resolve) => {
@@ -18,7 +19,6 @@ const getPonAndStatusEltex = (ipAddress) => {
             2: 'Offline',
             3: 'LOS',
             0: 'Unknown'
-            // Добавьте другие значения на основе MIB C-Data
         };
 
         function walk(currentSerialOid, currentRunStateOid) {

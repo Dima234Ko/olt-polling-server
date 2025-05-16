@@ -85,7 +85,6 @@ const getPon = (ipAddress) => {
     });
 };
 
-
 const getStatus = (ipAddress) => {
     const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20'; 
 
