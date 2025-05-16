@@ -1,4 +1,5 @@
 import snmp from 'net-snmp';
+import writeToFile from '../../writeLog.js';
 
 const getPonAndStatusEltex = (ipAddress) => {
     return new Promise((resolve) => {
