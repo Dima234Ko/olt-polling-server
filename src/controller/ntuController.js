@@ -1,11 +1,11 @@
-import { getPonForCdata } from './olt/snmp/get_pon_cdata.js';
-import { getPonForEltex } from './olt/snmp/get_pon_eltex.js';
-import { getPonAndStatusCdata } from './olt/snmp/get_pon_and_status_cdata.js';
-import { getPonAndStatusEltex } from './olt/snmp/get_pon_and_status_eltex.js';
-import { getLtpModel } from './olt/snmp/get_model_olt.js';
-import { getNtuOnline, getNtuList } from './olt/result.js';
-import { processUnsupportedModel, validateInput } from './validate.js';
-import writeToFile from './writeLog.js'
+import { getPonForCdata } from '../olt/snmp/get_pon_cdata.js';
+import { getPonForEltex } from '../olt/snmp/get_pon_eltex.js';
+import { getPonAndStatusCdata } from '../olt/snmp/get_pon_and_status_cdata.js';
+import { getPonAndStatusEltex } from '../olt/snmp/get_pon_and_status_eltex.js';
+import { getLtpModel } from '../olt/snmp/get_model_olt.js';
+import { getNtuOnline, getNtuList } from '../olt/result.js';
+import { processUnsupportedModel, validateInput } from '../validate.js';
+import writeToFile from '../writeLog.js'
 
 const getStatusNtu = async (req, res, work) => {
     const processIpAddress = async (ipAddr, ponSerial) => {
