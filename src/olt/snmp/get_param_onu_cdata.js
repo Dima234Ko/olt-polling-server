@@ -4,10 +4,15 @@ import writeToFile from '../../writeLog.js';
 
 const getOnuInfoCdata = async (ipAddress, serial) => {
     const ponList = await getPon(ipAddress);
+    writeToFile('Получена информация о pon serial');
     const statusList = await getStatus(ipAddress);
+    writeToFile('Получена информация о status');
     const softList = await getSoftwareVersions(ipAddress);
-    const rxList = await getReceivedOpticalPowers(ipAddress);
-    const data = await filterLists(ponList, statusList, softList, rxList, serial);
+    writeToFile('Получена информация о software versions');
+    const data = await filterLists(ponList, statusList, softList, serial);
+    const rxList = await getReceivedOpticalPowers(ipAddress, data.id);
+    writeToFile('Получена информация о optical power');
+    data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
     return (data);
 };
 
@@ -162,7 +167,7 @@ const getStatus = (ipAddress) => {
 const getSoftwareVersions = (ipAddress) => {
     return new Promise((resolve) => {
         const softwareVersionList = [];
-        const softwareVersionOid = '1.3.6.1.4.1.17409.2.8.4.2.1.2';
+        const softwareVersionOid = '1.3.6.1.4.1.17409.2.8.4.2.1.2'
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -232,10 +237,10 @@ const getSoftwareVersions = (ipAddress) => {
 };
 
 
-const getReceivedOpticalPowers = (ipAddress) => {
+const getReceivedOpticalPowers = (ipAddress, id) => {
     return new Promise((resolve) => {
-        const receivedPowerList = [];
-        const receivedPowerOid = '1.3.6.1.4.1.17409.2.8.4.4.1.4'; 
+        // Формируем полный OID с использованием id
+        const receivedPowerOid = `1.3.6.1.4.1.17409.2.8.4.4.1.4.${id}.0.0`;
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -243,56 +248,36 @@ const getReceivedOpticalPowers = (ipAddress) => {
             port: 161
         });
 
-        function walk(currentReceivedPowerOid) {
-            session.getNext([currentReceivedPowerOid], (error, varbinds) => {
-                if (error) {
+        // Запрашиваем одну запись по указанному OID
+        session.get([receivedPowerOid], (error, varbinds) => {
+            if (error) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddress} - ${error.message}`
+                });
+            }
+
+            for (const vb of varbinds) {
+                if (snmp.isVarbindError(vb)) {
                     session.close();
                     return resolve({
                         Success: false,
-                        Result: `${ipAddress} - ${error.message}`
+                        Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                     });
                 }
 
-                let continueWalk = false;
-                let receivedPower = null;
-                let id = null;
-
-                for (const vb of varbinds) {
-                    if (snmp.isVarbindError(vb)) {
-                        session.close();
-                        return resolve({
-                            Success: false,
-                            Result: `${ipAddress} - ${snmp.varbindError(vb)}`
-                        });
-                    }
-
-                    if (vb.oid.startsWith(receivedPowerOid)) {
-                        receivedPower = vb.value;
-                        id = vb.oid.split('.').slice(-3)[0]; // Извлекаем предпоследнюю часть OID перед .0.0
-                        continueWalk = true;
-                    }
-                }
-
-                if (receivedPower !== null && id) {
-                    receivedPowerList.push({
+                // Возвращаем результат для единственного OID
+                session.close();
+                return resolve({
+                    Success: true,
+                    Result: {
                         id,
-                        receivedOpticalPower: receivedPower
-                    });
-                }
-
-                if (continueWalk) {
-                    walk(varbinds[0].oid);
-                } else {
-                    session.close();
-                    return resolve({
-                        Success: true,
-                        Result: receivedPowerList
-                    });
-                }
-            });
-        }
-
-        walk(receivedPowerOid);
+                        receivedOpticalPower: vb.value
+                    }
+                });
+            }
+        });
 
         session.on('timeout', () => {
             session.close();
@@ -303,7 +288,6 @@ const getReceivedOpticalPowers = (ipAddress) => {
         });
     });
 };
-
 
 
 
