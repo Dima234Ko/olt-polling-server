@@ -1,4 +1,5 @@
-import { config } from 'dotenv'; 
+import { config } from 'dotenv';
+config({ path: './config.env' });
 import express from 'express';
 import ntuRouter from './src/ntuRouter.js';
 import writeToFile from './src/writeLog.js';
