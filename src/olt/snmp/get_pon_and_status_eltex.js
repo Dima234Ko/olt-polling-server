@@ -4,7 +4,7 @@ import writeToFile from '../../writeLog.js';
 const getPonAndStatusEltex = (ipAddress) => {
     return new Promise((resolve) => {
         const ontList = [];
-        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
+        const serialOid = '1.3.6.1.4.1.35265.1.22.3.1.1.2';  // OID для серийного номера
         const runStateOid = '1.3.6.1.4.1.35265.1.22.3.4.1.20';  // OID для состояния устройства
 
         // Создаем SNMP-сессию
@@ -35,7 +35,7 @@ const getPonAndStatusEltex = (ipAddress) => {
                 let serialNumber = null;
                 let runState = null;
 
-                for (const vb of varbinds) {
+                for (const vb of varbinds) { 
                     if (snmp.isVarbindError(vb)) {
                         session.close();
                         return resolve({

@@ -4,7 +4,7 @@ import writeToFile from '../../writeLog.js';
 const getPonForEltex = (ipAddress) => {
     return new Promise((resolve) => {
         const serialList = [];
-        const serialOid = '1.3.6.1.4.1.35265.1.22.2.3.1.4';  // OID для серийного номера
+        const serialOid = '1.3.6.1.4.1.35265.1.22.3.1.1.2';  // OID для серийного номера
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
