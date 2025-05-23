@@ -91,7 +91,7 @@ const getStatusNtu = async (req, res, work) => {
             if (foundResult) {
                 return res.status(200).json({
                     success: true,
-                    data: foundResult,
+                    result: foundResult,
                 });
             }
         }

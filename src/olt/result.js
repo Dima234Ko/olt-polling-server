@@ -12,18 +12,18 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
                 const result = await getOnuInfoCdata (ipAddr, ponSerial);
                 if (result){
                     return {
+                        ...result,
                         ip: ipAddr,
-                        foundPonSerial: true,
-                        result
+                        foundPonSerial: true
                     };
                 }
             } else if (model === 'ELTE') {
                 const result = await getOnuInfoEltex (ipAddr, ponSerial);
                 if (result){
                     return {
+                        ...result,
                         ip: ipAddr,
-                        foundPonSerial: true,
-                        result
+                        foundPonSerial: true
                     };
                 }
             }
