@@ -4,9 +4,13 @@ import writeToFile from '../../writeLog.js';
 
 const getOnuInfoEltex = async (ipAddress, serial) => {
     const ponList = await getPon(ipAddress);
+    writeToFile('Получена информация о pon serial');
     const statusList = await getStatus(ipAddress);
+    writeToFile('Получена информация о status');
     const softList = await getSoftwareVersions(ipAddress);
+    writeToFile('Получена информация о software versions');
     const rxList = await getReceivedOpticalPowers(ipAddress);
+    writeToFile('Получена информация о optical power');
     const data = await filterLists(ponList, statusList, softList, rxList, serial);
     return (data);
 };
