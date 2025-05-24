@@ -3,17 +3,35 @@ import {filterLists} from '../work_data.js';
 import writeToFile from '../../writeLog.js';
 
 const getOnuInfoCdata = async (ipAddress, serial) => {
-    const ponList = await getPon(ipAddress);
-    writeToFile('Получена информация о pon serial');
-    const statusList = await getStatus(ipAddress);
-    writeToFile('Получена информация о status');
-    const softList = await getSoftwareVersions(ipAddress);
-    writeToFile('Получена информация о software versions');
-    const data = await filterLists(ponList, statusList, softList, serial);
-    const rxList = await getReceivedOpticalPowers(ipAddress, data.id);
-    writeToFile('Получена информация о optical power');
-    data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
-    return (data);
+    try {
+        const ponList = await getPon(ipAddress);
+        await writeToFile('Получена информация о pon serial');
+
+        const statusList = await getStatus(ipAddress);
+        await writeToFile('Получена информация о status');
+
+        const softList = await getSoftwareVersions(ipAddress);
+        await writeToFile('Получена информация о software versions');
+
+        const data = await filterLists(ponList, statusList, softList, serial);
+        
+        if (!data?.id) {
+            return false;
+        }
+
+        const rxList = await getReceivedOpticalPowers(ipAddress, data.id);
+        await writeToFile('Получена информация о optical power');
+
+        if (rxList?.Result?.receivedOpticalPower) {
+            data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
+        } else {
+            writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+        }
+        return data;
+    } catch (error) {
+        await writeToFile(`Ошибка при получении данных: ${error.message}`, '[FAIL]');
+        throw error;
+    }
 };
 
 

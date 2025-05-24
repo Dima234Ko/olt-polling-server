@@ -5,7 +5,7 @@ const isValidIp = (ip) => {
 };
 
 // Проверка входных данных (IP-адрес или массив IP-адресов)
-const validateInput = (ip) => {
+const validateIp = (ip) => {
     if (!ip) {
         return {
             valid: false,
@@ -26,6 +26,35 @@ const validateInput = (ip) => {
     return { valid: true, ipAddresses };
 };
 
+const validatePonSerial = (ponSerial) => {
+    if (typeof ponSerial !== 'string') {
+        return {
+            valid: false,
+            error: `Входной параметр должен быть строкой, получено: ${typeof ponSerial}`
+        };
+    }
+    if (ponSerial.length < 8 || ponSerial.length > 14) {
+        return {
+            valid: false,
+            error: `Некорректная длина PONSerial: ${ponSerial.length}, ожидается от 8 до 14 символов`
+        };
+    }
+    if (/[A-Z]/.test(ponSerial)) {
+        return {
+            valid: false,
+            error: `PONSerial содержит заглавные буквы: ${ponSerial}, ожидаются только строчные`
+        };
+    }
+    if (/[А-Яа-яЁё]/.test(ponSerial)) {
+        return {
+            valid: false,
+            error: `PONSerial содержит кириллические символы: ${ponSerial}, ожидаются только латинские символы`
+        };
+    }
+
+    return { valid: true, ponSerial };
+};
+
 // Обработка неподдерживаемых моделей
 const processUnsupportedModel = (ipAddr, modelResult) => ({
     ip: ipAddr,
@@ -33,4 +62,4 @@ const processUnsupportedModel = (ipAddr, modelResult) => ({
     result: `Устройство ${ipAddr} не поддерживается (модель: ${modelResult})`,
 });
 
-export { processUnsupportedModel, validateInput };
+export { processUnsupportedModel, validateIp, validatePonSerial };

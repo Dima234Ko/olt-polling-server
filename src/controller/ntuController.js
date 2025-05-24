@@ -4,7 +4,7 @@ import { getPonAndStatusCdata } from '../olt/snmp/get_pon_and_status_cdata.js';
 import { getPonAndStatusEltex } from '../olt/snmp/get_pon_and_status_eltex.js';
 import { getLtpModel } from '../olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from '../olt/result.js';
-import { processUnsupportedModel, validateInput } from '../validate.js';
+import { processUnsupportedModel, validateIp, validatePonSerial } from '../validate.js';
 import writeToFile from '../writeLog.js'
 
 const getStatusNtu = async (req, res, work) => {
@@ -71,18 +71,26 @@ const getStatusNtu = async (req, res, work) => {
             });
         }
 
-        const validation = validateInput(ip);
+        const validationIP = validateIp(ip);
+        const validationPon =validatePonSerial(ponSerial);
 
-        if (!validation.valid) {
+        if (!validationIP.valid || !validationPon.valid) {
+            const errors = [];
+            if (!validationIP.valid) {
+                errors.push(validationIP.error);
+            }
+            if (!validationPon.valid) {
+                errors.push(validationPon.error);
+            }
             return res.status(400).json({
                 success: false,
-                error: validation.error,
+                errors: errors.join('; '),
             });
         }
 
         // Параллельная обработка всех IP-адресов
         const results = await Promise.all(
-            validation.ipAddresses.map(ipAddr => processIpAddress(ipAddr, ponSerial))
+            validationIP.ipAddresses.map(ipAddr => processIpAddress(ipAddr, ponSerial))
         );
 
         // Проверка для ntuStatus: вернуть первый результат с foundPonSerial === true
