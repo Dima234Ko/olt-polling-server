@@ -98,8 +98,8 @@ const getStatusNtu = async (req, res, work) => {
             const foundResult = results.find(result => result && result.foundPonSerial === true);
             if (foundResult) {
                 return res.status(200).json({
-                    success: true,
-                    result: foundResult,
+                    Success: true,
+                    Result: foundResult,
                 });
             }
         }
@@ -107,8 +107,8 @@ const getStatusNtu = async (req, res, work) => {
         // Для ntuStatusList возвращаем все результаты
         if (work === 'ntuStatusList') {
             return res.status(200).json({
-                success: true,
-                result: results
+                Success: true,
+                Result: results
             });
         }
 

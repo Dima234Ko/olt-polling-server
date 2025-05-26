@@ -1,5 +1,5 @@
-import {getOnuInfoCdata} from './snmp/get_param_onu_cdata.js'
-import {getOnuInfoEltex} from './snmp/get_param_onu_eltex.js'
+import {getOnuInfoCdata} from './snmp/get_param_onu.js'
+import {get_oid_olt_cdata, get_oid_olt_eltex} from './snmp/get_oid.js'
 import writeToFile from '../writeLog.js';
 
 const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
@@ -8,25 +8,24 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
         if (resultStatus) {
             await writeToFile(`NTU ${ponSerial} найдена на olt ${model} ${ipAddr}`, '[SUCCESS]');
 
+            let oid;
+
             if (model === 'FD16') {
-                const result = await getOnuInfoCdata (ipAddr, ponSerial);
-                if (result){
-                    return {
-                        ...result,
-                        ip: ipAddr,
-                        foundPonSerial: true
-                    };
-                }
+                oid = get_oid_olt_cdata();
             } else if (model === 'ELTE') {
-                const result = await getOnuInfoEltex (ipAddr, ponSerial);
-                if (result){
-                    return {
-                        ...result,
-                        ip: ipAddr,
-                        foundPonSerial: true
-                    };
-                }
+                oid = get_oid_olt_eltex();
             }
+
+
+            const result = await getOnuInfoCdata (ipAddr, ponSerial, oid, model);
+            if (result){
+                return {
+                    ...result,
+                    ip: ipAddr,
+                    foundPonSerial: true
+                };
+            }
+            
         } else {
             writeToFile(`NTU ${ponSerial} не найдена на olt`);
             return {

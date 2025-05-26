@@ -2,15 +2,15 @@ import snmp from 'net-snmp';
 import {filterLists} from '../work_data.js';
 import writeToFile from '../../writeLog.js';
 
-const getOnuInfoCdata = async (ipAddress, serial) => {
+const getOnuInfoCdata = async (ipAddress, serial, oid, model) => {
     try {
-        const ponList = await getPon(ipAddress);
+        const ponList = await getPon(ipAddress, oid.serialOid, model);
         await writeToFile('Получена информация о pon serial');
 
-        const statusList = await getStatus(ipAddress);
+        const statusList = await getStatus(ipAddress, oid.runStateOid, model);
         await writeToFile('Получена информация о status');
 
-        const softList = await getSoftwareVersions(ipAddress);
+        const softList = await getSoftwareVersions(ipAddress, oid.softwareVersionOid, model);
         await writeToFile('Получена информация о software versions');
 
         const data = await filterLists(ponList, statusList, softList, serial);
@@ -19,7 +19,7 @@ const getOnuInfoCdata = async (ipAddress, serial) => {
             return false;
         }
 
-        const rxList = await getReceivedOpticalPowers(ipAddress, data.id);
+        const rxList = await getReceivedOpticalPowers(ipAddress, data.id, oid.receivedPowerOid, model);
         await writeToFile('Получена информация о optical power');
 
         if (rxList?.Result?.receivedOpticalPower) {
@@ -35,10 +35,9 @@ const getOnuInfoCdata = async (ipAddress, serial) => {
 };
 
 
-const getPon = (ipAddress) => {
+const getPon = (ipAddress, serialOid, model) => {
     return new Promise((resolve) => {
         const serialList = [];
-        const serialOid = '1.3.6.1.4.1.17409.2.8.4.1.1.3'; // Серийный номер
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -71,7 +70,11 @@ const getPon = (ipAddress) => {
 
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
-                        id = vb.oid.split('.').pop();
+                        if (model === 'ELTE') {
+                            id = vb.oid.slice(serialOid.length + 1);
+                        } else {
+                            id = vb.oid.split('.').pop();
+                        }
                         continueWalk = true;
                     }
                 }
@@ -109,10 +112,9 @@ const getPon = (ipAddress) => {
 };
 
 
-const getStatus = (ipAddress) => {
+const getStatus = (ipAddress, runStateOid, model) => {
     return new Promise((resolve) => {
         const runStateList = [];
-        const runStateOid = '1.3.6.1.4.1.17409.2.8.4.1.1.7'; // Статус
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -145,7 +147,11 @@ const getStatus = (ipAddress) => {
 
                     if (vb.oid.startsWith(runStateOid)) {
                         runState = vb.value;
-                        id = vb.oid.split('.').pop();
+                        if (model === 'ELTE') {
+                            id = vb.oid.slice(runStateOid.length + 1);
+                        } else {
+                            id = vb.oid.split('.').pop();
+                        }
                         continueWalk = true;
                     }
                 }
@@ -182,10 +188,9 @@ const getStatus = (ipAddress) => {
 };
 
 
-const getSoftwareVersions = (ipAddress) => {
+const getSoftwareVersions = (ipAddress, softwareVersionOid, model) => {
     return new Promise((resolve) => {
         const softwareVersionList = [];
-        const softwareVersionOid = '1.3.6.1.4.1.17409.2.8.4.2.1.2'
 
         // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
@@ -218,7 +223,11 @@ const getSoftwareVersions = (ipAddress) => {
 
                     if (vb.oid.startsWith(softwareVersionOid)) {
                         softwareVersion = vb.value.toString();
-                        id = vb.oid.split('.').pop();
+                        if (model === 'ELTE') {
+                            id = vb.oid.slice(softwareVersionOid.length + 1);
+                        } else {
+                            id = vb.oid.split('.').pop();
+                        }
                         continueWalk = true;
                     }
                 }
@@ -255,12 +264,25 @@ const getSoftwareVersions = (ipAddress) => {
 };
 
 
-const getReceivedOpticalPowers = (ipAddress, id) => {
+const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
     return new Promise((resolve) => {
-        // Формируем полный OID с использованием id
-        const receivedPowerOid = `1.3.6.1.4.1.17409.2.8.4.4.1.4.${id}.0.0`;
+        let receivedPowerOid;
 
-        // Создаем SNMP-сессию
+
+        
+
+        if (model === 'FD16') {
+            receivedPowerOid = `${oid}.${id}.0.0`;
+        } else if (model === 'ELTE') {
+            receivedPowerOid = `${oid}.${id}`;
+        } else {
+            writeToFile(`Модель OLT ${ipAddr} не известна: ${model}`, '[FAIL]');
+            return resolve({
+                Success: false,
+                Result: `${ipAddress} - Unsupported model: ${model}`
+            });
+        }
+
         const session = snmp.createSession(ipAddress, 'public', {
             version: snmp.Version2c,
             port: 161
@@ -276,25 +298,32 @@ const getReceivedOpticalPowers = (ipAddress, id) => {
                 });
             }
 
-            for (const vb of varbinds) {
-                if (snmp.isVarbindError(vb)) {
-                    session.close();
-                    return resolve({
-                        Success: false,
-                        Result: `${ipAddress} - ${snmp.varbindError(vb)}`
-                    });
-                }
-
-                // Возвращаем результат для единственного OID
+            // Проверяем, получены ли данные
+            if (!varbinds || varbinds.length === 0) {
                 session.close();
                 return resolve({
-                    Success: true,
-                    Result: {
-                        id,
-                        receivedOpticalPower: vb.value
-                    }
+                    Success: false,
+                    Result: `${ipAddress} - No data received`
                 });
             }
+
+            const vb = varbinds[0];
+            if (snmp.isVarbindError(vb)) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddress} - ${snmp.varbindError(vb)}`
+                });
+            }
+
+            session.close();
+            resolve({
+                Success: true,
+                Result: {
+                    id,
+                    receivedOpticalPower: vb.value
+                }
+            });
         });
 
         session.on('timeout', () => {
