@@ -1,4 +1,4 @@
-import {getOnuInfoCdata} from './snmp/get_param_onu.js'
+import {getOnuInfo} from './snmp/get_param_onu.js'
 import {get_oid_olt_cdata, get_oid_olt_eltex} from './snmp/get_oid.js'
 import writeToFile from '../writeLog.js';
 
@@ -17,7 +17,7 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
             }
 
 
-            const result = await getOnuInfoCdata (ipAddr, ponSerial, oid, model);
+            const result = await getOnuInfo (ipAddr, ponSerial, oid, model);
             if (result){
                 return {
                     ...result,

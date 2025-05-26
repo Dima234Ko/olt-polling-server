@@ -26,7 +26,7 @@ const mergeArraysById = (array1, array2, array3) => {
 
 const filterLists =  async (ponList, statusList, softList, serial) => {
     const mergedData = mergeArraysById(ponList.Result, statusList.Result, softList.Result);
-    const mergedDataOnline = mergedData.filter(ont => ont.runState !== 2)
+    const mergedDataOnline = mergedData.filter(ont => ont.runState !== 2);
     const data = mergedDataOnline.find(item => item.serial === serial);
     return data;
 }
