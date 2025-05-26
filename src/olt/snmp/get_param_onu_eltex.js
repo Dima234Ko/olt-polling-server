@@ -3,16 +3,35 @@ import {filterLists} from '../work_data.js';
 import writeToFile from '../../writeLog.js';
 
 const getOnuInfoEltex = async (ipAddress, serial) => {
-    const ponList = await getPon(ipAddress);
-    writeToFile('Получена информация о pon serial');
-    const statusList = await getStatus(ipAddress);
-    writeToFile('Получена информация о status');
-    const softList = await getSoftwareVersions(ipAddress);
-    writeToFile('Получена информация о software versions');
-    const rxList = await getReceivedOpticalPowers(ipAddress);
-    writeToFile('Получена информация о optical power');
-    const data = await filterLists(ponList, statusList, softList, rxList, serial);
-    return (data);
+    try {
+        const ponList = await getPon(ipAddress);
+        await writeToFile('Получена информация о pon serial');
+
+        const statusList = await getStatus(ipAddress);
+        await writeToFile('Получена информация о status');
+
+        const softList = await getSoftwareVersions(ipAddress);
+        await writeToFile('Получена информация о software versions');
+
+        const data = await filterLists(ponList, statusList, softList, serial);
+        
+        if (!data?.id) {
+            return false;
+        }
+
+        const rxList = await getReceivedOpticalPowers(ipAddress, data.id);
+        await writeToFile('Получена информация о optical power');
+
+        if (rxList?.Result?.receivedOpticalPower) {
+            data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
+        } else {
+            writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+        }
+        return data;
+    } catch (error) {
+        await writeToFile(`Ошибка при получении данных: ${error.message}`, '[FAIL]');
+        throw error;
+    }
 };
 
 const getPon = (ipAddress) => {
@@ -236,66 +255,47 @@ const getSoftwareVersions = (ipAddress) => {
 };
 
 
-const getReceivedOpticalPowers = (ipAddress) => {
-    const receivedOpticalPowerOid = '1.3.6.1.4.1.35265.1.22.3.1.1.11';
-
+const getReceivedOpticalPowers = (ipAddress, id) => {
     return new Promise((resolve) => {
-        const dataList = [];
+        // Формируем полный OID с использованием id
+        const receivedPowerOid = `1.3.6.1.4.1.35265.1.22.3.1.1.11.${id}`;
+
+        // Создаем SNMP-сессию
         const session = snmp.createSession(ipAddress, 'public', {
             version: snmp.Version2c,
             port: 161
         });
 
-        function walk(currentOid) {
-            session.getNext([currentOid], (error, varbinds) => {
-                if (error) {
+        // Запрашиваем одну запись по указанному OID
+        session.get([receivedPowerOid], (error, varbinds) => {
+            if (error) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddress} - ${error.message}`
+                });
+            }
+
+            for (const vb of varbinds) {
+                if (snmp.isVarbindError(vb)) {
                     session.close();
                     return resolve({
                         Success: false,
-                        Result: `${ipAddress} - ${error.message}`
+                        Result: `${ipAddress} - ${snmp.varbindError(vb)}`
                     });
                 }
 
-                let continueWalk = false;
-                let value = null;
-                let id = null;
-
-                for (const vb of varbinds) {
-                    if (snmp.isVarbindError(vb)) {
-                        session.close();
-                        return resolve({
-                            Success: false,
-                            Result: `${ipAddress} - ${snmp.varbindError(vb)}`
-                        });
-                    }
-
-                    if (vb.oid.startsWith(receivedOpticalPowerOid)) {
-                        value = vb.value !== null ? vb.value : 'Unknown';
-                        id = vb.oid.slice(receivedOpticalPowerOid.length + 1);
-                        continueWalk = true;
-                    }
-                }
-
-                if (value !== null && id !== null) {
-                    dataList.push({
+                // Возвращаем результат для единственного OID
+                session.close();
+                return resolve({
+                    Success: true,
+                    Result: {
                         id,
-                        receivedOpticalPower: value
-                    });
-                }
-
-                if (continueWalk) {
-                    walk(varbinds[0].oid);
-                } else {
-                    session.close();
-                    resolve({
-                        Success: true,
-                        Result: dataList
-                    });
-                }
-            });
-        }
-
-        walk(receivedOpticalPowerOid);
+                        receivedOpticalPower: vb.value
+                    }
+                });
+            }
+        });
 
         session.on('timeout', () => {
             session.close();
@@ -306,5 +306,8 @@ const getReceivedOpticalPowers = (ipAddress) => {
         });
     });
 };
+
+
+
 
 export { getOnuInfoEltex };
