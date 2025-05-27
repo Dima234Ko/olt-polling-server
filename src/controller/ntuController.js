@@ -72,20 +72,28 @@ const getStatusNtu = async (req, res, work) => {
         }
 
         const validationIP = validateIp(ip);
-        const validationPon =validatePonSerial(ponSerial);
 
-        if (!validationIP.valid || !validationPon.valid) {
+        if (!validationIP.valid) {
             const errors = [];
-            if (!validationIP.valid) {
-                errors.push(validationIP.error);
-            }
-            if (!validationPon.valid) {
-                errors.push(validationPon.error);
-            }
+            errors.push(validationIP.error);
+            
             return res.status(400).json({
                 success: false,
                 errors: errors.join('; '),
             });
+        }
+
+        if (work === 'ntuStatus'){
+            const validationPon =validatePonSerial(ponSerial);
+            if (!validationPon.valid) {
+                const errors = [];
+                errors.push(validationPon.error);
+
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.join('; '),
+                });
+            }
         }
 
         // Параллельная обработка всех IP-адресов
