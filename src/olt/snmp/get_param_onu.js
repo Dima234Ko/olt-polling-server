@@ -2,43 +2,50 @@ import snmp from 'net-snmp';
 import {filterLists} from '../work_data.js';
 import writeToFile from '../../writeLog.js';
 
-const getOnuInfo = async (ipAddress, serial, oid, model) => {
+const getOnuInfo = async (param) => {
+    
+    const {ipAddr, ponSerial, oid, model} = param;
+
     try {
-        const ponList = await getParam(ipAddress, oid.serialOid, model, 'serial');
+        const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
         await writeToFile('Получена информация о pon serial');
 
-        const statusList = await getParam(ipAddress, oid.runStateOid, model, 'runState');
+        const statusList = await getParam(ipAddr, oid.runStateOid, model.Result, 'runState');
         await writeToFile('Получена информация о status');
 
-        const softList = await getParam(ipAddress, oid.softwareVersionOid, model, 'softwareVersion');
+        const softList = await getParam(ipAddr, oid.softwareVersionOid, model.Result, 'softwareVersion');
         await writeToFile('Получена информация о software versions');
 
-        const data = await filterLists(ponList, statusList, softList, serial);
+        const data = await filterLists({ponList, statusList, softList, ponSerial, model});
         
-        if (!data?.id) {
-            return false;
-        }
+            if (ponSerial){
+            if (!data?.id) {
+                return false;
+            }
 
-        const rxList = await getReceivedOpticalPowers(ipAddress, data.id, oid.receivedPowerOid, model);
-        await writeToFile('Получена информация о optical power');
+            const rxList = await getReceivedOpticalPowers(ipAddr, data.id, oid.receivedPowerOid, model.Result);
+            await writeToFile('Получена информация о optical power');
 
-        if (rxList?.Result?.receivedOpticalPower) {
-            data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
-        } else {
-            writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+            if (rxList?.Result?.receivedOpticalPower) {
+                data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
+            } else {
+                writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+            }
         }
+            
         return data;
+
     } catch (error) {
         await writeToFile(`Ошибка при получении данных: ${error.message}`, '[FAIL]');
         throw error;
     }
 };
 
-const getParam = (ipAddress, oid, model, param) => {
+const getParam = (ipAddr, oid, model, param) => {
     return new Promise((resolve) => {
         const valueList = [];
 
-        const session = snmp.createSession(ipAddress, 'public', {
+        const session = snmp.createSession(ipAddr, 'public', {
             version: snmp.Version2c,
             port: 161
         });
@@ -49,7 +56,7 @@ const getParam = (ipAddress, oid, model, param) => {
                     session.close();
                     return resolve({
                         Success: false,
-                        Result: `${ipAddress} - ${error.message}`
+                        Result: `${ipAddr} - ${error.message}`
                     });
                 }
 
@@ -62,7 +69,7 @@ const getParam = (ipAddress, oid, model, param) => {
                         session.close();
                         return resolve({
                             Success: false,
-                            Result: `${ipAddress} - ${snmp.varbindError(vb)}`
+                            Result: `${ipAddr} - ${snmp.varbindError(vb)}`
                         });
                     }
 
@@ -110,14 +117,14 @@ const getParam = (ipAddress, oid, model, param) => {
             session.close();
             resolve({
                 Success: false,
-                Result: `${ipAddress} - Timeout`
+                Result: `${ipAddr} - Timeout`
             });
         });
     });
 };
 
 
-const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
+const getReceivedOpticalPowers = (ipAddr, id, oid, model) => {
     return new Promise((resolve) => {
         let receivedPowerOid;
         if (model === 'FD16') {
@@ -128,11 +135,11 @@ const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
             writeToFile(`Модель OLT ${ipAddr} не известна: ${model}`, '[FAIL]');
             return resolve({
                 Success: false,
-                Result: `${ipAddress} - Unsupported model: ${model}`
+                Result: `${ipAddr} - Unsupported model: ${model}`
             });
         }
 
-        const session = snmp.createSession(ipAddress, 'public', {
+        const session = snmp.createSession(ipAddr, 'public', {
             version: snmp.Version2c,
             port: 161
         });
@@ -142,7 +149,7 @@ const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
                 session.close();
                 return resolve({
                     Success: false,
-                    Result: `${ipAddress} - ${error.message}`
+                    Result: `${ipAddr} - ${error.message}`
                 });
             }
 
@@ -150,7 +157,7 @@ const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
                 session.close();
                 return resolve({
                     Success: false,
-                    Result: `${ipAddress} - No data received`
+                    Result: `${ipAddr} - No data received`
                 });
             }
 
@@ -159,7 +166,7 @@ const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
                 session.close();
                 return resolve({
                     Success: false,
-                    Result: `${ipAddress} - ${snmp.varbindError(vb)}`
+                    Result: `${ipAddr} - ${snmp.varbindError(vb)}`
                 });
             }
 
@@ -177,7 +184,7 @@ const getReceivedOpticalPowers = (ipAddress, id, oid, model) => {
             session.close();
             resolve({
                 Success: false,
-                Result: `${ipAddress} - Timeout`
+                Result: `${ipAddr} - Timeout`
             });
         });
     });

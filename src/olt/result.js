@@ -1,23 +1,16 @@
 import {getOnuInfo} from './snmp/get_param_onu.js'
-import {get_oid_olt_cdata, get_oid_olt_eltex} from './snmp/get_oid.js'
 import writeToFile from '../writeLog.js';
 
-const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
+const getNtuOnline = async (param) => {
+    
+    const {result, ipAddr, ponSerial, model, oid} = param;
+    
     try {
         const resultStatus = result.Result.find(item => item.serial === ponSerial);
         if (resultStatus) {
-            await writeToFile(`NTU ${ponSerial} найдена на olt ${model} ${ipAddr}`, '[SUCCESS]');
+            await writeToFile(`NTU ${ponSerial} найдена на olt ${model.Result} ${ipAddr}`, '[SUCCESS]');
 
-            let oid;
-
-            if (model === 'FD16') {
-                oid = get_oid_olt_cdata();
-            } else if (model === 'ELTE') {
-                oid = get_oid_olt_eltex();
-            }
-
-
-            const result = await getOnuInfo (ipAddr, ponSerial, oid, model);
+            const result = await getOnuInfo ({ipAddr, ponSerial, oid, model});
             if (result){
                 return {
                     ...result,
@@ -44,20 +37,27 @@ const getNtuOnline = async (result, ipAddr, ponSerial, model) => {
     }
 };
 
-const getNtuList = async (result, ipAddr) => {
+const getNtuList = async (param) => {
+    
+    const {ipAddr, model, oid} = param;
+    
     try {
-        writeToFile(`Получены данные для IP-адреса ${ipAddr}:`);
-        return {
-            ip: ipAddr,
-            ...result,
-        };
+            const result = await getOnuInfo ({ipAddr, ponSerial:false, oid, model});
+            if (result){
+                return {
+                    ip: ipAddr,
+                    model: model.Result,
+                    ntuList: result
+                };
+            }
+            
     } catch (error) {
-        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`, '[FAIL]');
-        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        console.error(`Ошибка при опросе ${ipAddr}: ${error.message}`);
+        writeToFile(`Ошибка при опросе ${ipAddr}: ${error.message}`, '[FAIL]');
         return {
             ip: ipAddr,
             Success: false,
-            Result: `Ошибка при обработке ${ipAddr}: ${error.message}`,
+            Result: `Ошибка при опросе ${ipAddr}: ${error.message}`,
         };
     }
 };

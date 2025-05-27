@@ -1,4 +1,5 @@
-const mergeArraysById = (array1, array2, array3) => {
+const mergeArraysById = (param) => {
+    const {ponList, statusList, softList, model} = param;
     const mergedMap = new Map();
 
     // Функция для добавления данных из массива в Map
@@ -16,19 +17,34 @@ const mergeArraysById = (array1, array2, array3) => {
     };
 
     // Обрабатываем все массивы
-    addToMap(array1);
-    addToMap(array2);
-    addToMap(array3);
+    addToMap(ponList.Result);
+    addToMap(statusList.Result);
+    addToMap(softList.Result);
 
     // Преобразуем Map в массив
     return Array.from(mergedMap.values());
 };
 
-const filterLists =  async (ponList, statusList, softList, serial) => {
-    const mergedData = mergeArraysById(ponList.Result, statusList.Result, softList.Result);
+const filterLists = async (param) => {  
+    
+    const {ponList, statusList, softList, ponSerial, model} = param;
+
+    const mergedData = mergeArraysById({ponList, statusList, softList, model});
+    
+    if (model.Result === 'ELTE') {
+        mergedData.forEach(item => {
+            item.runState = item.runState === 7 ? 1 : 2;
+        });
+    }
+
+    if (!ponSerial) {
+        return mergedData;
+    }
+
     const mergedDataOnline = mergedData.filter(ont => ont.runState !== 2);
-    const data = mergedDataOnline.find(item => item.serial === serial);
+    const data = mergedDataOnline.find(item => item.serial === ponSerial);
     return data;
 }
+
 
 export { filterLists };
