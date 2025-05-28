@@ -1,4 +1,4 @@
-import {getOnuInfo} from './snmp/get_param_onu.js'
+import {getOnuInfo} from './get_info_ntu.js';
 import writeToFile from '../writeLog.js';
 
 const getNtuOnline = async (param) => {
