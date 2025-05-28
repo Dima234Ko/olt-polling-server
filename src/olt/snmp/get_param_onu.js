@@ -36,7 +36,7 @@ const getParam = (ipAddr, oid, model, param) => {
                         
                         if (param === 'serial'){
                             value = vb.value.toString('hex').substring(4);
-                        } else if (param === 'softwareVersion'){
+                        } else if (param === 'softwareVersion' || 'downCase'){
                             value = vb.value.toString();
                         } else {
                             value = vb.value;

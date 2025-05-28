@@ -19,9 +19,12 @@ const getOnuInfo = async (param) => {
         const softList = await getParam(ipAddr, oid.softwareVersionOid, model.Result, 'softwareVersion');
         await writeToFile('Получена информация о software versions');
 
-        const data = await filterLists({ponList, statusList, softList, ponSerial, model});
+        const downCase = await getParam(ipAddr, oid.downCase, model.Result, 'downCase');
+        await writeToFile('Получена информация о downCase');
+
+        const data = await filterLists({ponList, statusList, softList, ponSerial, downCase, model});
         
-            if (ponSerial){
+        if (ponSerial){
             if (!data?.id) {
                 return false;
             }
