@@ -1,9 +1,8 @@
 import { getPonForCdata } from '../olt/snmp/get_pon_cdata.js';
 import { getPonForEltex } from '../olt/snmp/get_pon_eltex.js';
-import { getPonAndStatusCdata } from '../olt/snmp/get_pon_and_status_cdata.js';
-import { getPonAndStatusEltex } from '../olt/snmp/get_pon_and_status_eltex.js';
 import { getLtpModel } from '../olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from '../olt/result.js';
+import {get_oid_olt_cdata, get_oid_olt_eltex} from '../olt/snmp/get_oid.js'
 import { processUnsupportedModel, validateIp, validatePonSerial } from '../validate.js';
 import writeToFile from '../writeLog.js'
 
@@ -23,31 +22,27 @@ const getStatusNtu = async (req, res, work) => {
             }
 
             if (model.Result === 'FD16') {
+                let data;
+                const oid = get_oid_olt_cdata();
+
                 if (work === 'ntuStatus') {
                     const result = await getPonForCdata(ipAddr);
-                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
-                    if (onlineResult?.foundPonSerial === true) {
-                        return onlineResult;
-                    } else {
-                        return { foundPonSerial: false };
-                    }
-                } else if (work === 'ntuStatusList') {
-                    const result = await getPonAndStatusCdata(ipAddr);
-                    return await getNtuList(result, ipAddr);
-                }
+                    data = await getNtuOnline({result, ipAddr, ponSerial, model, oid});
+                } else {
+                    data = await getNtuList({ipAddr, model, oid});
+                }  
+                    return data;
             } else if (model.Result === 'ELTE') {
+                let data;
+                const oid = get_oid_olt_eltex();
+
                 if (work === 'ntuStatus') {
                     const result = await getPonForEltex(ipAddr);
-                    const onlineResult = await getNtuOnline(result, ipAddr, ponSerial, model.Result);
-                    if (onlineResult?.foundPonSerial === true) {
-                        return onlineResult;
-                    } else {
-                        return { foundPonSerial: false };
-                    }
-                } else if (work === 'ntuStatusList') {
-                    const result = await getPonAndStatusEltex(ipAddr);
-                    return await getNtuList(result, ipAddr);
-                }
+                    data = await getNtuOnline({result, ipAddr, ponSerial, model, oid});
+                } else {
+                    data = await getNtuList({ipAddr, model, oid});
+                }  
+                    return data;
             } else {
                 return processUnsupportedModel(ipAddr, model.Result);
             }
@@ -72,20 +67,28 @@ const getStatusNtu = async (req, res, work) => {
         }
 
         const validationIP = validateIp(ip);
-        const validationPon =validatePonSerial(ponSerial);
 
-        if (!validationIP.valid || !validationPon.valid) {
+        if (!validationIP.valid) {
             const errors = [];
-            if (!validationIP.valid) {
-                errors.push(validationIP.error);
-            }
-            if (!validationPon.valid) {
-                errors.push(validationPon.error);
-            }
+            errors.push(validationIP.error);
+            
             return res.status(400).json({
                 success: false,
                 errors: errors.join('; '),
             });
+        }
+
+        if (work === 'ntuStatus'){
+            const validationPon =validatePonSerial(ponSerial);
+            if (!validationPon.valid) {
+                const errors = [];
+                errors.push(validationPon.error);
+
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.join('; '),
+                });
+            }
         }
 
         // Параллельная обработка всех IP-адресов
