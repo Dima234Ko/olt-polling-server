@@ -15,6 +15,11 @@ router.post('/ntuStatusList', async (req, res) => {
     ntuController.getStatusNtu(req, res, 'ntuStatusList');
 });
 
+router.post('/resetNtu', async (req, res) => {
+    await writeToFile('Вызван маршрут: /resetNtu');
+    ntuController.getResetNtu(req, res, 'resetNtu');
+});
+
 router.post('/readLog', async (req, res) => {
     await writeToFile('Вызван маршрут: /readLog');
     fileController.getFileLog(req, res, 'ntuStatusList');

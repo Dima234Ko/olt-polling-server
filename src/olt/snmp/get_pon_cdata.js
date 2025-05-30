@@ -27,6 +27,7 @@ const getPonForCdata = (ipAddress) => {
 
                 let continueWalk = false;
                 let serialNumber = null;
+                let idNtu = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
@@ -41,14 +42,16 @@ const getPonForCdata = (ipAddress) => {
                     // Обработка серийного номера
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
+                        idNtu = vb.oid.split('.').pop();
                         continueWalk = true;
                     }
                 }
 
                 // Добавляем ONT в список с серийным номером
-                if (serialNumber) {
+                if (serialNumber, idNtu) {
                     serialList.push({
                         index: serialList.length + 1,
+                        id: idNtu,
                         serial: serialNumber
                     });
                 }
