@@ -24,6 +24,7 @@ const getPonForEltex = (ipAddress) => {
 
                 let continueWalk = false;
                 let serialNumber = null;
+                let idNtu = null;
 
                 for (const vb of varbinds) {
                     if (snmp.isVarbindError(vb)) {
@@ -36,6 +37,7 @@ const getPonForEltex = (ipAddress) => {
 
                     if (vb.oid.startsWith(serialOid)) {
                         serialNumber = vb.value.toString('hex').substring(4);
+                        idNtu = vb.oid.slice(serialOid.length + 1);
                         continueWalk = true;
                     }
                 }
@@ -43,6 +45,7 @@ const getPonForEltex = (ipAddress) => {
                 if (serialNumber) {
                     serialList.push({
                         index: serialList.length + 1,
+                        id: idNtu,
                         serial: serialNumber
                     });
                 }

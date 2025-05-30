@@ -155,21 +155,22 @@ const getResetNtu = async (req, res, work) => {
 
                 if (data) {
                     const oid = get_oid_olt_cdata();
-                    value = await resetONU(ipAddr, data.id, oid.resetNtu);
+                    value = await resetONU(ipAddr, data.id, oid.resetNtu, model);
                 }
 
                 return value;
             } else if (model.Result === 'ELTE') {
                 const result = await getPonForEltex(ipAddr);
                 const data = result.Result.find(item => item.serial === ponSerial);
+
                 let value = {
                     ip: ipAddr,
                     resultReceived: false,
                 };
 
                 if (data) {
-                    const oid = get_oid_olt_eltex(); // Предполагается, что есть функция для ELTE
-                    value = await resetONU(ipAddr, data.id, oid.resetNtu);
+                    const oid = get_oid_olt_eltex();
+                    value = await resetONU(ipAddr, data.id, oid.resetNtu, model);
                 }
 
                 return value;
