@@ -6,21 +6,18 @@ import {getParam, getOneParam} from './snmp/get_param_onu.js'
 
 const getOnuInfo = async (param) => {
     
-    const {ipAddr, ponSerial, oid, model} = param;
+    const {ipAddr, ponSerial, oid, model, ponList} = param;
 
     
     try {
-        const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
-        await writeToFile('Получена информация о pon serial');
-
         const statusList = await getParam(ipAddr, oid.runStateOid, model.Result, 'runState');
-        await writeToFile('Получена информация о status');
+        await writeToFile(`Получена информация о status OLT ${ipAddr}`);
 
         const softList = await getParam(ipAddr, oid.softwareVersionOid, model.Result, 'softwareVersion');
-        await writeToFile('Получена информация о software versions');
+        await writeToFile(`Получена информация о software versions OLT ${ipAddr}`);
 
         const downCase = await getParam(ipAddr, oid.downCase, model.Result, 'downCase');
-        await writeToFile('Получена информация о downCase');
+        await writeToFile(`Получена информация о downCase OLT ${ipAddr}`);
 
         const data = await filterLists({ponList, statusList, softList, ponSerial, downCase, model});
         
@@ -30,22 +27,22 @@ const getOnuInfo = async (param) => {
             }
 
             const rxList = await getOneParam(ipAddr, data.id, oid.receivedPowerOid, model.Result, 'receivedOpticalPower');
-            await writeToFile('Получена информация о optical power');
+            await writeToFile(`Получена информация о optical power OLT ${ipAddr}`);
 
             if (rxList?.Result?.receivedOpticalPower) {
                 data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
             } else {
-                writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+                writeToFile(`Данные об оптической мощности не получены OLT ${ipAddr}`, '[FAIL]');
             }
             
             const configState = await getOneParam(ipAddr, data.id, oid.configState, model.Result, 'configState');
-            await writeToFile('Получена информация о config state');
+            await writeToFile(`Получена информация о config state OLT ${ipAddr}`);
             
             if (configState?.Result?.configState) {
                 let configStateByText = await processingСonfigState(configState.Result.configState, model.Result);
                 data.configState = configStateByText;
             } else {
-                writeToFile('Данные о статусе конфигурации не получены', '[FAIL]');
+                writeToFile(`Данные о статусе конфигурации не получены OLT ${ipAddr}`, '[FAIL]');
             }
             
         }

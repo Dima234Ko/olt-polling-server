@@ -1,5 +1,4 @@
-import { getPonForCdata } from '../olt/snmp/get_pon_cdata.js';
-import { getPonForEltex } from '../olt/snmp/get_pon_eltex.js';
+import {getParam} from '../olt/snmp/get_param_onu.js'
 import { getLtpModel } from '../olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from '../olt/result.js';
 import { resetONU } from '../olt/snmp/resetOnu.js';
@@ -25,23 +24,24 @@ const getStatusNtu = async (req, res, work) => {
             if (model.Result === 'FD16') {
                 let data;
                 const oid = get_oid_olt_cdata();
+                const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
 
                 if (work === 'ntuStatus') {
-                    const result = await getPonForCdata(ipAddr);
-                    data = await getNtuOnline({result, ipAddr, ponSerial, model, oid});
+                    data = await getNtuOnline({ponList, ipAddr, ponSerial, model, oid});
                 } else {
-                    data = await getNtuList({ipAddr, model, oid});
+                    data = await getNtuList({ponList, ipAddr, model, oid});
                 }  
                     return data;
+
             } else if (model.Result === 'ELTE') {
                 let data;
                 const oid = get_oid_olt_eltex();
+                const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
 
                 if (work === 'ntuStatus') {
-                    const result = await getPonForEltex(ipAddr);
-                    data = await getNtuOnline({result, ipAddr, ponSerial, model, oid});
+                    data = await getNtuOnline({ponList, ipAddr, ponSerial, model, oid});
                 } else {
-                    data = await getNtuList({ipAddr, model, oid});
+                    data = await getNtuList({ponList, ipAddr, model, oid});
                 }  
                     return data;
             } else {
@@ -146,22 +146,23 @@ const getResetNtu = async (req, res, work) => {
             }
 
             if (model.Result === 'FD16') {
-                const result = await getPonForCdata(ipAddr);
-                const data = result.Result.find(item => item.serial === ponSerial);
+                const oid = get_oid_olt_cdata();
+                const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
+                const data = ponList.Result.find(item => item.serial === ponSerial);
                 let value = {
                     ip: ipAddr,
                     resultReceived: false,
                 };
 
                 if (data) {
-                    const oid = get_oid_olt_cdata();
                     value = await resetONU(ipAddr, data.id, oid.resetNtu, model);
                 }
 
                 return value;
             } else if (model.Result === 'ELTE') {
-                const result = await getPonForEltex(ipAddr);
-                const data = result.Result.find(item => item.serial === ponSerial);
+                const oid = get_oid_olt_eltex();
+                const ponList = await getParam(ipAddr, oid.serialOid, model.Result, 'serial');
+                const data = ponList.Result.find(item => item.serial === ponSerial);
 
                 let value = {
                     ip: ipAddr,
@@ -169,7 +170,6 @@ const getResetNtu = async (req, res, work) => {
                 };
 
                 if (data) {
-                    const oid = get_oid_olt_eltex();
                     value = await resetONU(ipAddr, data.id, oid.resetNtu, model);
                 }
 
