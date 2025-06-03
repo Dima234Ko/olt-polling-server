@@ -1,5 +1,13 @@
 import snmp from 'net-snmp';
 
+const generateOid = (oid, id, model, param) => {
+    if (param === 'receivedOpticalPower' && model === 'FD16'){
+        return `${oid}.${id}.0.0`;
+    } else {
+        return `${oid}.${id}`;
+    }
+};
+
 const getParam = (ipAddr, oid, model, param) => {
     return new Promise((resolve) => {
         const valueList = [];
@@ -82,6 +90,61 @@ const getParam = (ipAddr, oid, model, param) => {
     });
 };
 
-export { getParam };
+const getOneParam = (ipAddr, id, oid, model, param) => {
+    return new Promise((resolve) => {
+        const currentOid = generateOid(oid, id, model, param);
+
+        const session = snmp.createSession(ipAddr, 'public', {
+            version: snmp.Version2c,
+            port: 161
+        });
+
+        session.get([currentOid], (error, varbinds) => {
+            if (error) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddr} - ${error.message}`
+                });
+            }
+
+            if (!varbinds || varbinds.length === 0) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddr} - Нет полученных данных`
+                });
+            }
+
+            const vb = varbinds[0];
+            if (snmp.isVarbindError(vb)) {
+                session.close();
+                return resolve({
+                    Success: false,
+                    Result: `${ipAddr} - ${snmp.varbindError(vb)}`
+                });
+            }
+
+            session.close();
+            resolve({
+                Success: true,
+                Result: {
+                    id,
+                    [param]: vb.value
+                }
+            });
+        });
+
+        session.on('timeout', () => {
+            session.close();
+            resolve({
+                Success: false,
+                Result: `${ipAddr} - Тайм-аут`
+            });
+        });
+    });
+};
+
+export { getParam, getOneParam };
 
 

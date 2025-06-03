@@ -5,6 +5,7 @@ export const get_oid_olt_cdata = () => {
     const downCase = '1.3.6.1.4.1.17409.2.8.4.1.1.103';
     const receivedPowerOid = '1.3.6.1.4.1.17409.2.8.4.4.1.4';
     const resetNtu = '1.3.6.1.4.1.17409.2.8.4.1.1.10';
+    const configState = '1.3.6.1.4.1.17409.2.8.4.1.1.101';
         
         return {
             serialOid,
@@ -12,7 +13,8 @@ export const get_oid_olt_cdata = () => {
             softwareVersionOid,
             downCase,
             receivedPowerOid,
-            resetNtu
+            resetNtu,
+            configState
         };
 }
 

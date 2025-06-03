@@ -1,8 +1,7 @@
 
 import {filterLists} from './work_data.js';
 import writeToFile from './../writeLog.js';
-import {getReceivedOpticalPowers} from './snmp/get_RX_power.js';
-import {getParam} from './snmp/get_param_onu.js'
+import {getParam, getOneParam} from './snmp/get_param_onu.js'
 
 
 const getOnuInfo = async (param) => {
@@ -29,13 +28,24 @@ const getOnuInfo = async (param) => {
                 return false;
             }
 
-            const rxList = await getReceivedOpticalPowers(ipAddr, data.id, oid.receivedPowerOid, model.Result);
+            const rxList = await getOneParam(ipAddr, data.id, oid.receivedPowerOid, model.Result, 'receivedOpticalPower');
             await writeToFile('Получена информация о optical power');
 
             if (rxList?.Result?.receivedOpticalPower) {
                 data.receivedOpticalPower = rxList.Result.receivedOpticalPower;
             } else {
                 writeToFile('Данные об оптической мощности не получены', '[FAIL]');
+            }
+
+            if (oid.configState) {
+                const configState = await getOneParam(ipAddr, data.id, oid.configState, model.Result, 'configState');
+                await writeToFile('Получена информация о config state');
+
+                if (configState?.Result?.configState) {
+                    data.configState = configState.Result.configState;
+                } else {
+                    writeToFile('Данные о статусе конфигурации не получены', '[FAIL]');
+                }
             }
         }
             

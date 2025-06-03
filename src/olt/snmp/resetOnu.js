@@ -4,10 +4,14 @@ import writeToFile from '../../writeLog.js'
 const resetONU = (ipAddr, id, oid, model) => {
     return new Promise((resolve, reject) => {
         const currentOid = `${oid}.${id}`;
+        console.log(currentOid);
         const session = snmp.createSession(ipAddr, 'private');
-        let varbinds = null; 
+        let varbinds = null;
+        
+        console.log(currentOid);
         
         if (model.Result === 'FD16'){
+            console.log(model.Result);
             varbinds = [
                 {
                     oid: currentOid,
@@ -26,6 +30,7 @@ const resetONU = (ipAddr, id, oid, model) => {
             ];
         }
 
+        console.log(varbinds);
         session.set(varbinds, (error, varbinds) => {
             session.close();
             if (error) {
