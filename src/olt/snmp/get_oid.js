@@ -26,6 +26,7 @@ export const get_oid_olt_eltex = () => {
     const downCase = '1.3.6.1.4.1.35265.1.22.3.70.1.3';
     const receivedPowerOid = '1.3.6.1.4.1.35265.1.22.3.1.1.11';
     const resetNtu = '1.3.6.1.4.1.35265.1.22.3.1.1.22';
+    const configState = '1.3.6.1.4.1.35265.1.22.3.1.1.5';
         
         return {
             serialOid,
@@ -33,6 +34,7 @@ export const get_oid_olt_eltex = () => {
             softwareVersionOid,
             downCase,
             receivedPowerOid,
-            resetNtu
+            resetNtu,
+            configState
         };
 }
