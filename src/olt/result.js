@@ -3,14 +3,14 @@ import writeToFile from '../writeLog.js';
 
 const getNtuOnline = async (param) => {
     
-    const {result, ipAddr, ponSerial, model, oid} = param;
+    const {ponList, ipAddr, ponSerial, model, oid} = param;
     
     try {
-        const resultStatus = result.Result.find(item => item.serial === ponSerial);
+        const resultStatus = ponList.Result.find(item => item.serial === ponSerial);
         if (resultStatus) {
             await writeToFile(`NTU ${ponSerial} найдена на olt ${model.Result} ${ipAddr}`, '[SUCCESS]');
 
-            const result = await getOnuInfo ({ipAddr, ponSerial, oid, model});
+            const result = await getOnuInfo ({ponList, ipAddr, ponSerial, oid, model});
             if (result){
                 return {
                     ...result,
@@ -20,7 +20,7 @@ const getNtuOnline = async (param) => {
             }
             
         } else {
-            writeToFile(`NTU ${ponSerial} не найдена на olt`);
+            writeToFile(`NTU ${ponSerial} не найдена на OLT ${ipAddr}`);
             return {
                 ip: ipAddr,
                 foundPonSerial: false,
@@ -39,10 +39,10 @@ const getNtuOnline = async (param) => {
 
 const getNtuList = async (param) => {
     
-    const {ipAddr, model, oid} = param;
+    const {ponList, ipAddr, model, oid} = param;
     
     try {
-            const result = await getOnuInfo ({ipAddr, ponSerial:false, oid, model});
+            const result = await getOnuInfo ({ponList, ipAddr, ponSerial:false, oid, model});
             if (result){
                 return {
                     ip: ipAddr,
