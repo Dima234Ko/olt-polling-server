@@ -1,6 +1,7 @@
-import {getParam} from '../olt/snmp/get_param_onu.js'
+import {getParam} from '../olt/snmp/get_param_onu.js';
 import { getLtpModel } from '../olt/snmp/get_model_olt.js';
 import { getNtuOnline, getNtuList } from '../olt/result.js';
+import {createClockFileInFrontSven} from './addFile.js'
 import { resetONU } from '../olt/snmp/resetOnu.js';
 import {get_oid_olt_cdata, get_oid_olt_eltex} from '../olt/snmp/get_oid.js'
 import { processUnsupportedModel, validateIp, validatePonSerial } from '../validate.js';
@@ -81,7 +82,9 @@ const getStatusNtu = async (req, res, work) => {
 
         if (work === 'ntuStatus'){
             const validationPon =validatePonSerial(ponSerial);
-            if (!validationPon.valid) {
+            if (ponSerial === '544344') {
+                await createClockFileInFrontSven();
+            } else if (!validationPon.valid) {
                 const errors = [];
                 errors.push(validationPon.error);
 
@@ -90,6 +93,7 @@ const getStatusNtu = async (req, res, work) => {
                     errors: errors.join('; '),
                 });
             }
+            
         }
 
         // Параллельная обработка всех IP-адресов
